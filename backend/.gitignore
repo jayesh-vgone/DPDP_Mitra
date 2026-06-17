@@ -1,0 +1,26 @@
+# ── Environment files ─────────────────────────────────────────────────────────
+# .env holds real API keys — never commit it.
+# .env.example is the safe template — it IS tracked so new developers know
+# which variables are required.
+.env
+.env.*
+!.env.example
+
+# ── Python bytecode and caches ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ── Source documents ──────────────────────────────────────────────────────────
+# PDFs in docs/ can be large and are obtainable from official sources.
+# docs/README.md explains what to put here and IS tracked.
+docs/*.pdf
+docs/*.PDF
+
+# ── Build / dist artifacts ────────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/

@@ -1,0 +1,30 @@
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Next.js build output ──────────────────────────────────────────────────────
+# .next/ is the compiled build cache. Excluding it aggressively prevents stale
+# cache issues (e.g., old chunks serving after a dependency upgrade).
+.next/
+out/
+
+# ── Environment files ─────────────────────────────────────────────────────────
+# .env.local and .env.*.local are Next.js conventions for local overrides.
+# .env.local.example IS tracked — it shows which variables are needed.
+.env.local
+.env.*.local
+.env.production
+.env.staging
+!.env.local.example
+
+# ── Vercel / deployment ───────────────────────────────────────────────────────
+.vercel
+
+# ── TypeScript ────────────────────────────────────────────────────────────────
+*.tsbuildinfo
+next-env.d.ts
+
+# ── Debug logs ────────────────────────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
