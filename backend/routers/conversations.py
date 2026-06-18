@@ -1,10 +1,11 @@
 from typing import List
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from db.pool import get_pool
 from db import queries
+from middleware.session import get_session_user
 
 router = APIRouter()
 
@@ -18,15 +19,14 @@ class ConversationOut(BaseModel):
 
 
 @router.get("/conversations", response_model=List[ConversationOut])
-async def list_conversations(request: Request):
+async def list_conversations(user_id: str = Depends(get_session_user)):
     """Return all conversations for the current user, most recent activity first."""
-    user_id: str = request.state.user_id
     pool = get_pool()
     return await queries.list_conversations(pool, user_id)
 
 
 @router.get("/conversations/{conv_id}/messages", response_model=List[dict])
-async def get_messages(conv_id: str, request: Request):
+async def get_messages(conv_id: str, user_id: str = Depends(get_session_user)):
     """Return full message history for one conversation, ordered chronologically."""
     pool = get_pool()
     return await queries.list_messages(pool, conv_id)

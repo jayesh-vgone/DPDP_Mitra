@@ -1,10 +1,11 @@
 import type {
+  AuthResponse,
   ChatRequest,
   ChatResponse,
-  VoiceRequest,
-  VoiceResponse,
   Conversation,
   Message,
+  VoiceRequest,
+  VoiceResponse,
 } from './types';
 import {
   mockSendChat,
@@ -17,29 +18,58 @@ function useMock(): boolean {
   return process.env.NEXT_PUBLIC_API_URL === 'mock';
 }
 
-function authHeaders(): Record<string, string> {
-  if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('auth_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const base = process.env.NEXT_PUBLIC_API_URL;
   const url = `${base}${path}`;
-  console.log('Calling real API:', url);
   const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders(),
-    },
+    headers: { 'Content-Type': 'application/json' },
+    // credentials: 'include' sends the session cookie on every request
+    // and allows the Set-Cookie header from /auth/* to be stored.
+    credentials: 'include',
     ...init,
   });
   if (!res.ok) {
     const text = await res.text().catch(() => 'Unknown error');
     throw new Error(`API ${res.status}: ${text}`);
   }
+  // 204 No Content (logout) has no body
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
+
+// ── Auth endpoints ─────────────────────────────────────────────────────────────
+
+export async function authRegister(payload: {
+  invite_code: string;
+  admin_name: string;
+  email: string;
+  password: string;
+}): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function authLogin(payload: {
+  email: string;
+  password: string;
+}): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function authLogout(): Promise<void> {
+  return apiFetch<void>('/auth/logout', { method: 'POST' });
+}
+
+export async function authMe(): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/auth/me');
+}
+
+// ── Chat endpoints ─────────────────────────────────────────────────────────────
 
 export async function sendChat(req: ChatRequest): Promise<ChatResponse> {
   if (useMock()) return mockSendChat(req);

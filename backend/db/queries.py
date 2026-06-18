@@ -9,7 +9,185 @@ which makes these functions easier to test in isolation.
 
 from __future__ import annotations
 
+import uuid
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
 import asyncpg
+
+
+# ── Institutions ───────────────────────────────────────────────────────────────
+
+async def get_institution_by_invite_code(
+    pool: asyncpg.Pool, invite_code: str
+) -> Optional[dict]:
+    """Return institution dict if found, None otherwise."""
+    row = await pool.fetchrow(
+        "SELECT * FROM institutions WHERE invite_code = $1",
+        invite_code,
+    )
+    if row is None:
+        return None
+    return {
+        "id": str(row["id"]),
+        "name": row["name"],
+        "type": row["type"],
+        "board": row["board"],
+        "location": row["location"],
+        "student_count": row["student_count"],
+        "staff_count": row["staff_count"],
+        "invite_code": row["invite_code"],
+        "plan": row["plan"],
+    }
+
+
+async def get_institution_by_id(
+    pool: asyncpg.Pool, institution_id: str
+) -> Optional[dict]:
+    row = await pool.fetchrow(
+        "SELECT * FROM institutions WHERE id = $1::uuid",
+        institution_id,
+    )
+    if row is None:
+        return None
+    return {
+        "id": str(row["id"]),
+        "name": row["name"],
+        "type": row["type"],
+        "board": row["board"],
+        "location": row["location"],
+        "student_count": row["student_count"],
+        "staff_count": row["staff_count"],
+        "invite_code": row["invite_code"],
+        "plan": row["plan"],
+    }
+
+
+# ── Users (auth) ───────────────────────────────────────────────────────────────
+
+async def create_user_with_password(
+    pool: asyncpg.Pool,
+    display_name: str,
+    email: str,
+    password_hash: str,
+    institution_id: str,
+    role: str = "admin",
+) -> str:
+    """
+    Insert a new user row with credentials and return the new user_id string.
+
+    The user_id is a UUID cast to TEXT so it fits the existing TEXT PRIMARY KEY.
+    (Existing dev-user rows from Phase 2/4 testing are left untouched.)
+    """
+    user_id = str(uuid.uuid4())
+    await pool.execute(
+        """
+        INSERT INTO users (id, display_name, email, password_hash, institution_id, role)
+        VALUES ($1, $2, $3, $4, $5::uuid, $6)
+        """,
+        user_id,
+        display_name,
+        email,
+        password_hash,
+        institution_id,
+        role,
+    )
+    return user_id
+
+
+async def get_user_by_email(pool: asyncpg.Pool, email: str) -> Optional[dict]:
+    """Return full user dict (including password_hash) for login verification."""
+    row = await pool.fetchrow(
+        "SELECT * FROM users WHERE email = $1",
+        email,
+    )
+    if row is None:
+        return None
+    return {
+        "id": row["id"],
+        "display_name": row["display_name"],
+        "email": row["email"],
+        "password_hash": row["password_hash"],
+        "institution_id": str(row["institution_id"]) if row["institution_id"] else None,
+        "role": row["role"],
+        "language": row["language"],
+    }
+
+
+async def get_user_by_id(pool: asyncpg.Pool, user_id: str) -> Optional[dict]:
+    row = await pool.fetchrow(
+        "SELECT * FROM users WHERE id = $1",
+        user_id,
+    )
+    if row is None:
+        return None
+    return {
+        "id": row["id"],
+        "display_name": row["display_name"],
+        "email": row["email"],
+        "institution_id": str(row["institution_id"]) if row["institution_id"] else None,
+        "role": row["role"],
+        "language": row["language"],
+    }
+
+
+# ── Sessions ───────────────────────────────────────────────────────────────────
+
+SESSION_TTL_DAYS = 7
+
+
+async def create_session(pool: asyncpg.Pool, user_id: str) -> str:
+    """
+    Create a new session row and return the session_id UUID string.
+
+    expires_at is set to 7 days from now. On every subsequent authenticated
+    request, get_session() bumps expires_at forward again — so active users
+    never get logged out.
+    """
+    expires_at = datetime.now(timezone.utc) + timedelta(days=SESSION_TTL_DAYS)
+    row = await pool.fetchrow(
+        """
+        INSERT INTO sessions (user_id, expires_at)
+        VALUES ($1, $2)
+        RETURNING id
+        """,
+        user_id,
+        expires_at,
+    )
+    return str(row["id"])
+
+
+async def get_session(pool: asyncpg.Pool, session_id: str) -> Optional[str]:
+    """
+    Validate a session and return its user_id, or None if missing/expired.
+
+    If valid, bumps expires_at forward by SESSION_TTL_DAYS (sliding expiry —
+    active users stay logged in indefinitely; idle users are logged out after
+    7 days of inactivity).
+    """
+    new_expires = datetime.now(timezone.utc) + timedelta(days=SESSION_TTL_DAYS)
+    row = await pool.fetchrow(
+        """
+        UPDATE sessions
+        SET expires_at = $2
+        WHERE id = $1::uuid
+          AND expires_at > now()
+        RETURNING user_id
+        """,
+        session_id,
+        new_expires,
+    )
+    if row is None:
+        return None
+    return row["user_id"]
+
+
+async def delete_session(pool: asyncpg.Pool, session_id: str) -> None:
+    """Delete a session row — used by logout for instant revocation."""
+    await pool.execute(
+        "DELETE FROM sessions WHERE id = $1::uuid",
+        session_id,
+    )
 
 
 # ── Users ─────────────────────────────────────────────────────────────────────

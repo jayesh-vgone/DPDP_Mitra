@@ -1,9 +1,10 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { institution } from '@/lib/mockData';
+import { usePathname, useRouter } from 'next/navigation';
+import { LogOut } from 'lucide-react';
 import { LanguageToggle } from '@/components/chat/LanguageToggle';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import { t, type TranslationKey } from '@/lib/translations';
 
 const PAGE_TITLE_KEYS: Record<string, TranslationKey> = {
@@ -22,10 +23,20 @@ function getInitials(name: string): string {
 
 export function AppHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const { lang } = useLanguage();
+  const { user, institution, logout } = useAuth();
+
   const titleKey = PAGE_TITLE_KEYS[pathname] ?? 'pageDashboard';
   const title = t(titleKey, lang);
-  const initials = getInitials(institution.name);
+
+  const displayName = user?.display_name ?? institution?.name ?? 'User';
+  const initials = getInitials(displayName);
+
+  async function handleLogout() {
+    await logout();
+    router.replace('/login');
+  }
 
   return (
     <header className="bg-white border-b-2 border-[#FF9933] px-6 py-3.5 flex items-center justify-between shrink-0">
@@ -38,7 +49,15 @@ export function AppHeader() {
         >
           <span className="text-white text-xs font-bold select-none">{initials}</span>
         </div>
-        <span className="text-base text-[#111827] font-medium">{institution.name}</span>
+        <span className="text-base text-[#111827] font-medium">{displayName}</span>
+        <button
+          onClick={handleLogout}
+          title={t('logoutBtn', lang)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-[#0A0F2C] hover:bg-gray-100 transition"
+        >
+          <LogOut size={14} />
+          <span className="hidden sm:inline">{t('logoutBtn', lang)}</span>
+        </button>
       </div>
     </header>
   );

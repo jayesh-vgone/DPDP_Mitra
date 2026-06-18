@@ -57,6 +57,42 @@ const UI = {
   inputHint:        { en: 'Enter to send · Shift+Enter for new line', hi: 'भेजने के लिए Enter · नई लाइन के लिए Shift+Enter' },
   recordingLabel:   { en: '● Recording...', hi: '● रिकॉर्डिंग...' },
   recordingHint:    { en: 'Recording — release to send', hi: 'रिकॉर्डिंग हो रही है — भेजने के लिए छोड़ें' },
+
+  // Auth — login page
+  loginTitle:       { en: 'Sign in to EduPrivacy AI', hi: 'EduPrivacy AI में साइन इन करें' },
+  loginSubtitle:    { en: 'DPDP compliance for educational institutions', hi: 'शैक्षणिक संस्थाओं के लिए DPDP अनुपालन' },
+  emailLabel:       { en: 'Email address', hi: 'ईमेल पता' },
+  passwordLabel:    { en: 'Password', hi: 'पासवर्ड' },
+  loginBtn:         { en: 'Sign in', hi: 'साइन इन करें' },
+  loginLoading:     { en: 'Signing in...', hi: 'साइन इन हो रहा है...' },
+  noAccount:        { en: "Don't have an account?", hi: 'खाता नहीं है?' },
+  registerLink:     { en: 'Register your institution', hi: 'अपनी संस्था पंजीकृत करें' },
+  invalidCreds:     { en: 'Incorrect email or password', hi: 'गलत ईमेल या पासवर्ड' },
+
+  // Auth — register page
+  registerTitle:    { en: 'Register your institution', hi: 'अपनी संस्था पंजीकृत करें' },
+  registerSubtitle: { en: 'Join EduPrivacy AI with your institution invite code', hi: 'संस्था आमंत्रण कोड के साथ EduPrivacy AI से जुड़ें' },
+  inviteCodeLabel:  { en: 'Institution invite code', hi: 'संस्था आमंत्रण कोड' },
+  adminNameLabel:   { en: 'Your name', hi: 'आपका नाम' },
+  registerBtn:      { en: 'Create account', hi: 'खाता बनाएं' },
+  registerLoading:  { en: 'Creating account...', hi: 'खाता बन रहा है...' },
+  haveAccount:      { en: 'Already have an account?', hi: 'पहले से खाता है?' },
+  loginLink:        { en: 'Sign in', hi: 'साइन इन करें' },
+  invalidInvite:    { en: 'Invalid invite code', hi: 'अमान्य आमंत्रण कोड' },
+  emailTaken:       { en: 'An account with this email already exists', hi: 'इस ईमेल से पहले से एक खाता है' },
+  passwordShort:    { en: 'Password must be at least 8 characters', hi: 'पासवर्ड कम से कम 8 अक्षरों का होना चाहिए' },
+
+  // Dashboard — blank state (no assessment yet)
+  dashboardBlankTitle:  { en: 'Welcome to EduPrivacy AI', hi: 'EduPrivacy AI में आपका स्वागत है' },
+  dashboardBlankBody:   {
+    en: 'Complete an assessment to generate your DPDP compliance score and risk breakdown.',
+    hi: 'अपना DPDP अनुपालन स्कोर और जोखिम विश्लेषण देखने के लिए एक मूल्यांकन पूरा करें।',
+  },
+  dashboardBlankCta:    { en: 'Take an assessment', hi: 'मूल्यांकन करें' },
+  dashboardBlankSoon:   { en: 'Assessment coming soon', hi: 'मूल्यांकन जल्द आ रहा है' },
+
+  // Header / sidebar — auth controls
+  logoutBtn:        { en: 'Sign out', hi: 'साइन आउट करें' },
 } satisfies Record<string, { en: string; hi: string }>;
 
 export type TranslationKey = keyof typeof UI;

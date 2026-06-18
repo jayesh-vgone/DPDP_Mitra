@@ -1,7 +1,7 @@
 import base64
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 
 from schemas.chat import ChatRequest, ChatResponse, MessageOut
 from providers.llm.factory import get_llm_provider
@@ -11,6 +11,7 @@ from retrieval import retrieve_chunks
 from guardrails import check_injection, check_output_scope
 from db.pool import get_pool
 from db import queries
+from middleware.session import get_session_user
 
 router = APIRouter()
 
@@ -28,8 +29,7 @@ def _make_message(msg_id: str, content: str, conv_id: str, lang: str, input_type
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest, request: Request):
-    user_id: str = request.state.user_id
+async def chat(req: ChatRequest, user_id: str = Depends(get_session_user)):
     pool = get_pool()
 
     # Upsert the user row so every authenticated caller has a users record.

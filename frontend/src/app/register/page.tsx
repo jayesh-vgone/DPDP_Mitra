@@ -1,0 +1,171 @@
+'use client';
+
+import { useState, FormEvent } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Shield } from 'lucide-react';
+import { authRegister } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { t } from '@/lib/translations';
+import { LanguageToggle } from '@/components/chat/LanguageToggle';
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const { setAuth } = useAuth();
+  const { lang } = useLanguage();
+
+  const [inviteCode, setInviteCode] = useState('');
+  const [adminName, setAdminName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+
+    if (password.length < 8) {
+      setError(t('passwordShort', lang));
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await authRegister({
+        invite_code: inviteCode.trim(),
+        admin_name: adminName.trim(),
+        email,
+        password,
+      });
+      setAuth(data.user, data.institution);
+      router.replace('/dashboard');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('400') && msg.toLowerCase().includes('invite')) {
+        setError(t('invalidInvite', lang));
+      } else if (msg.includes('400') && msg.toLowerCase().includes('email')) {
+        setError(t('emailTaken', lang));
+      } else if (msg.includes('password')) {
+        setError(t('passwordShort', lang));
+      } else {
+        setError(msg || 'Something went wrong.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center px-4 py-8">
+      {/* Language toggle — top right */}
+      <div className="absolute top-4 right-6">
+        <LanguageToggle />
+      </div>
+
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="bg-[#FF9933] p-3 rounded-2xl mb-4 shadow-md">
+            <Shield size={28} className="text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-[#0A0F2C]">EduPrivacy AI</h1>
+          <p className="text-sm text-[#FF9933] font-medium mt-1">DPDP Copilot</p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+          <h2 className="text-xl font-bold text-[#0A0F2C] mb-1">{t('registerTitle', lang)}</h2>
+          <p className="text-sm text-gray-500 mb-6">{t('registerSubtitle', lang)}</p>
+
+          {error && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Invite code */}
+            <div>
+              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+                {t('inviteCodeLabel', lang)}
+              </label>
+              <input
+                type="text"
+                required
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition font-mono tracking-wider"
+                placeholder="SUNRISE-2024"
+              />
+            </div>
+
+            {/* Admin name */}
+            <div>
+              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+                {t('adminNameLabel', lang)}
+              </label>
+              <input
+                type="text"
+                required
+                value={adminName}
+                onChange={(e) => setAdminName(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                placeholder="Priya Sharma"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+                {t('emailLabel', lang)}
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                placeholder="you@school.edu.in"
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+                {t('passwordLabel', lang)}
+              </label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                placeholder="••••••••"
+              />
+              <p className="text-xs text-gray-400 mt-1">Minimum 8 characters</p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ background: 'linear-gradient(135deg, #FF9933, #138808)' }}
+              className="w-full py-2.5 rounded-xl text-white font-semibold text-sm transition disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90"
+            >
+              {loading ? t('registerLoading', lang) : t('registerBtn', lang)}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-gray-500 mt-6">
+            {t('haveAccount', lang)}{' '}
+            <Link href="/login" className="text-[#FF9933] font-medium hover:underline">
+              {t('loginLink', lang)}
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

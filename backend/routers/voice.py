@@ -1,7 +1,7 @@
 import base64
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends
 
 from schemas.voice import VoiceRequest, VoiceResponse
 from schemas.chat import MessageOut
@@ -13,6 +13,7 @@ from retrieval import retrieve_chunks
 from guardrails import check_injection, check_output_scope
 from db.pool import get_pool
 from db import queries
+from middleware.session import get_session_user
 
 router = APIRouter()
 
@@ -30,8 +31,7 @@ def _make_message(msg_id: str, content: str, conv_id: str, lang: str, input_type
 
 
 @router.post("/voice", response_model=VoiceResponse)
-async def voice(req: VoiceRequest, request: Request):
-    user_id: str = request.state.user_id
+async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
     pool = get_pool()
 
     await queries.ensure_user(pool, user_id)

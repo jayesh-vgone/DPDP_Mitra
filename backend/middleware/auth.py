@@ -6,11 +6,15 @@ from jose import jwt, JWTError
 from config import settings
 
 SKIP_PATHS = {"/health"}
+# /auth/* routes use their own session-cookie mechanism and must not require a JWT.
+SKIP_PREFIXES = ("/auth/",)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.url.path in SKIP_PATHS:
+            return await call_next(request)
+        if any(request.url.path.startswith(p) for p in SKIP_PREFIXES):
             return await call_next(request)
 
         if settings.app_env == "development":
