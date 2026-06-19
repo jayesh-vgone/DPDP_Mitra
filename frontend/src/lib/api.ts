@@ -6,6 +6,10 @@ import type {
   Message,
   VoiceRequest,
   VoiceResponse,
+  QuestionOut,
+  ResponseIn,
+  ScoresResponse,
+  SubmitResponse,
 } from './types';
 import {
   mockSendChat,
@@ -41,6 +45,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function authRegister(payload: {
   invite_code: string;
+  category: string;
   admin_name: string;
   email: string;
   password: string;
@@ -95,4 +100,21 @@ export async function getConversations(): Promise<Conversation[]> {
 export async function getMessages(conversationId: string): Promise<Message[]> {
   if (useMock()) return mockGetMessages(conversationId);
   return apiFetch<Message[]>(`/conversations/${conversationId}/messages`);
+}
+
+// ── Assessment endpoints ───────────────────────────────────────────────────────
+
+export async function getAssessmentQuestions(): Promise<QuestionOut[]> {
+  return apiFetch<QuestionOut[]>('/assessment/questions');
+}
+
+export async function submitAssessment(responses: ResponseIn[]): Promise<SubmitResponse> {
+  return apiFetch<SubmitResponse>('/assessment/submit', {
+    method: 'POST',
+    body: JSON.stringify({ responses }),
+  });
+}
+
+export async function getAssessmentScores(): Promise<ScoresResponse> {
+  return apiFetch<ScoresResponse>('/assessment/scores');
 }

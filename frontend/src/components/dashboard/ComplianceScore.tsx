@@ -1,6 +1,5 @@
 'use client';
 
-import { complianceScore } from '@/lib/mockData';
 import { useLanguage } from '@/context/LanguageContext';
 import { t, type TranslationKey } from '@/lib/translations';
 
@@ -10,14 +9,13 @@ const CY = 100;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 function getStatus(score: number): { labelKey: TranslationKey; color: string } {
-  if (score >= 80) return { labelKey: 'statusGood',     color: '#138808' };
-  if (score >= 50) return { labelKey: 'statusModerate', color: '#FF9933' };
+  if (score > 70) return { labelKey: 'statusGood',     color: '#138808' };
+  if (score > 40) return { labelKey: 'statusModerate', color: '#FF9933' };
   return              { labelKey: 'statusCritical',  color: '#DC2626' };
 }
 
-export function ComplianceScore() {
+export function ComplianceScore({ score }: { score: number }) {
   const { lang } = useLanguage();
-  const score = complianceScore;
   const { labelKey, color } = getStatus(score);
 
   // Split arc: saffron fills 0–50%, India Green fills 50–score%
@@ -30,7 +28,7 @@ export function ComplianceScore() {
 
   return (
     <div className="relative bg-white rounded-2xl border border-gray-100 p-6 flex flex-col overflow-hidden">
-      <h3 className="font-semibold text-[#0A0F2C] text-base mb-4">{t('complianceScore', lang)}</h3>
+      <h3 className="font-semibold text-[#0A0F2C] text-base mb-4">{t('dashboardScoreTitle', lang)}</h3>
 
       {/* Ashoka Chakra watermark */}
       <div
@@ -68,7 +66,7 @@ export function ComplianceScore() {
 
           {/* Center label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-4xl font-bold text-[#0A0F2C] leading-none">{score}</span>
+            <span className="text-4xl font-bold text-[#0A0F2C] leading-none">{Math.round(score)}</span>
             <span className="text-xs text-[#9CA3AF] mt-1">{t('outOf100', lang)}</span>
             <span className="text-sm font-semibold mt-1" style={{ color }}>
               {t(labelKey, lang)}
@@ -76,10 +74,6 @@ export function ComplianceScore() {
           </div>
         </div>
       </div>
-
-      <p className="text-xs text-center mt-3" style={{ color: '#138808' }}>
-        {t('up6Points', lang)}
-      </p>
     </div>
   );
 }

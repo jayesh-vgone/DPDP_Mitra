@@ -18,16 +18,8 @@ import asyncpg
 
 # ── Institutions ───────────────────────────────────────────────────────────────
 
-async def get_institution_by_invite_code(
-    pool: asyncpg.Pool, invite_code: str
-) -> Optional[dict]:
-    """Return institution dict if found, None otherwise."""
-    row = await pool.fetchrow(
-        "SELECT * FROM institutions WHERE invite_code = $1",
-        invite_code,
-    )
-    if row is None:
-        return None
+def _institution_row_to_dict(row) -> dict:
+    """Convert an asyncpg institution row to a plain dict."""
     return {
         "id": str(row["id"]),
         "name": row["name"],
@@ -38,7 +30,20 @@ async def get_institution_by_invite_code(
         "staff_count": row["staff_count"],
         "invite_code": row["invite_code"],
         "plan": row["plan"],
+        # category added in Phase 6a — included in SELECT * so always present.
+        "category": row["category"] if "category" in row.keys() else "school",
     }
+
+
+async def get_institution_by_invite_code(
+    pool: asyncpg.Pool, invite_code: str
+) -> Optional[dict]:
+    """Return institution dict if found, None otherwise."""
+    row = await pool.fetchrow(
+        "SELECT * FROM institutions WHERE invite_code = $1",
+        invite_code,
+    )
+    return None if row is None else _institution_row_to_dict(row)
 
 
 async def get_institution_by_id(
@@ -48,19 +53,7 @@ async def get_institution_by_id(
         "SELECT * FROM institutions WHERE id = $1::uuid",
         institution_id,
     )
-    if row is None:
-        return None
-    return {
-        "id": str(row["id"]),
-        "name": row["name"],
-        "type": row["type"],
-        "board": row["board"],
-        "location": row["location"],
-        "student_count": row["student_count"],
-        "staff_count": row["staff_count"],
-        "invite_code": row["invite_code"],
-        "plan": row["plan"],
-    }
+    return None if row is None else _institution_row_to_dict(row)
 
 
 # ── Users (auth) ───────────────────────────────────────────────────────────────
@@ -365,3 +358,144 @@ async def list_messages(pool: asyncpg.Pool, conversation_id: str) -> list[dict]:
         }
         for r in rows
     ]
+
+
+# ── Assessment ─────────────────────────────────────────────────────────────────
+
+
+async def get_questions_for_category(
+    pool: asyncpg.Pool, institution_category: str
+) -> list[dict]:
+    """
+    Return all questions for a given institution category, ordered by order_index.
+
+    The router fetches the institution's category first, then calls this function.
+    Filtering by category happens here — scoring.py has no awareness of categories.
+    """
+    rows = await pool.fetch(
+        """
+        SELECT id, institution_category, category, question_text,
+               dpdp_section, weight, order_index, answer_type
+        FROM assessment_questions
+        WHERE institution_category = $1
+        ORDER BY order_index ASC
+        """,
+        institution_category,
+    )
+    return [
+        {
+            "id": str(r["id"]),
+            "institution_category": r["institution_category"],
+            "category": r["category"],
+            "question_text": r["question_text"],
+            "dpdp_section": r["dpdp_section"],
+            "weight": float(r["weight"]),
+            "order_index": r["order_index"],
+            "answer_type": r["answer_type"],
+        }
+        for r in rows
+    ]
+
+
+async def get_question_map(
+    pool: asyncpg.Pool, institution_category: str
+) -> dict[str, dict]:
+    """
+    Return a dict keyed by question UUID for quick look-ups during submission.
+
+    Values include weight and category so the router can build the ResponseItem
+    list for scoring.py without a per-question DB round-trip.
+    """
+    questions = await get_questions_for_category(pool, institution_category)
+    return {q["id"]: q for q in questions}
+
+
+async def create_assessment_attempt(
+    pool: asyncpg.Pool,
+    institution_id: str,
+    user_id: str,
+    overall_score: float,
+    category_scores: dict,
+) -> str:
+    """
+    Insert one assessment_attempts row and return its UUID string.
+
+    overall_score and category_scores are stored denormalized so history queries
+    need no re-computation.
+    """
+    import json
+    row = await pool.fetchrow(
+        """
+        INSERT INTO assessment_attempts
+            (institution_id, submitted_by_user_id, overall_score, category_scores)
+        VALUES ($1::uuid, $2, $3, $4::jsonb)
+        RETURNING id
+        """,
+        institution_id,
+        user_id,
+        overall_score,
+        json.dumps(category_scores),
+    )
+    return str(row["id"])
+
+
+async def create_assessment_responses(
+    pool: asyncpg.Pool,
+    attempt_id: str,
+    responses: list[dict],  # [{question_id, answer_value}, ...]
+) -> None:
+    """
+    Bulk-insert one assessment_responses row per answer, all linked to attempt_id.
+
+    Using executemany avoids N round-trips for large question sets.
+    """
+    await pool.executemany(
+        """
+        INSERT INTO assessment_responses (attempt_id, question_id, answer_value)
+        VALUES ($1::uuid, $2::uuid, $3)
+        """,
+        [(attempt_id, r["question_id"], r["answer_value"]) for r in responses],
+    )
+
+
+def _attempt_to_dict(row) -> dict:
+    import json as _json
+    cs = row["category_scores"]
+    # asyncpg returns JSONB as a raw JSON string — parse it manually.
+    if isinstance(cs, str):
+        cs = _json.loads(cs)
+    return {
+        "id": str(row["id"]),
+        "institution_id": str(row["institution_id"]),
+        "submitted_by_user_id": row["submitted_by_user_id"],
+        "overall_score": float(row["overall_score"]),
+        "category_scores": {k: float(v) for k, v in cs.items()},
+        "created_at": row["created_at"].isoformat(),
+    }
+
+
+async def get_assessment_scores(
+    pool: asyncpg.Pool, institution_id: str
+) -> dict:
+    """
+    Return the latest attempt + full history for an institution.
+
+    The idx_attempts_institution_time index makes both lookups fast.
+    Returns {"latest": {...}|null, "history": [...]} — null latest means
+    no assessment has been submitted yet.
+    """
+    rows = await pool.fetch(
+        """
+        SELECT id, institution_id, submitted_by_user_id,
+               overall_score, category_scores, created_at
+        FROM assessment_attempts
+        WHERE institution_id = $1::uuid
+        ORDER BY created_at DESC
+        """,
+        institution_id,
+    )
+    if not rows:
+        return {"latest": None, "history": []}
+
+    history = [_attempt_to_dict(r) for r in rows]
+    return {"latest": history[0], "history": history}

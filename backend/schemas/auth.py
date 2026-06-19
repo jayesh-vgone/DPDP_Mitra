@@ -50,6 +50,7 @@ class InstitutionOut(BaseModel):
     staff_count: Optional[int]
     invite_code: str
     plan: str
+    category: str = "school"  # added Phase 6a
 
 
 class AuthResponse(BaseModel):

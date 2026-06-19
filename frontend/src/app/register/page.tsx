@@ -7,8 +7,14 @@ import { Shield } from 'lucide-react';
 import { authRegister } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { t } from '@/lib/translations';
+import { t, type TranslationKey } from '@/lib/translations';
 import { LanguageToggle } from '@/components/chat/LanguageToggle';
+
+const CATEGORY_OPTIONS: { value: 'school' | 'higher_ed' | 'edtech'; labelKey: TranslationKey }[] = [
+  { value: 'school',     labelKey: 'categorySchool' },
+  { value: 'higher_ed',  labelKey: 'categoryHigherEd' },
+  { value: 'edtech',     labelKey: 'categoryEdtech' },
+];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,6 +22,7 @@ export default function RegisterPage() {
   const { lang } = useLanguage();
 
   const [inviteCode, setInviteCode] = useState('');
+  const [category, setCategory] = useState<'school' | 'higher_ed' | 'edtech'>('school');
   const [adminName, setAdminName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +42,7 @@ export default function RegisterPage() {
     try {
       const data = await authRegister({
         invite_code: inviteCode.trim(),
+        category,
         admin_name: adminName.trim(),
         email,
         password,
@@ -99,6 +107,23 @@ export default function RegisterPage() {
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition font-mono tracking-wider"
                 placeholder="SUNRISE-2024"
               />
+            </div>
+
+            {/* Institution category */}
+            <div>
+              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+                {t('categoryDropdownLabel', lang)}
+              </label>
+              <select
+                required
+                value={category}
+                onChange={(e) => setCategory(e.target.value as typeof category)}
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+              >
+                {CATEGORY_OPTIONS.map(({ value, labelKey }) => (
+                  <option key={value} value={value}>{t(labelKey, lang)}</option>
+                ))}
+              </select>
             </div>
 
             {/* Admin name */}

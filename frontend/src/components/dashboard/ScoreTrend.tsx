@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowUpRight } from 'lucide-react';
-import { scoreTrend, months } from '@/lib/mockData';
+import type { AttemptOut } from '@/lib/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { t } from '@/lib/translations';
 
@@ -14,37 +14,63 @@ const MIN_VAL = 0;
 const MAX_VAL = 100;
 const Y_TICKS = [0, 25, 50, 75, 100];
 
-function xAt(i: number): number {
-  return PAD.left + (i / (scoreTrend.length - 1)) * CHART_W;
+function xAt(i: number, total: number): number {
+  if (total <= 1) return PAD.left + CHART_W / 2;
+  return PAD.left + (i / (total - 1)) * CHART_W;
 }
 
 function yAt(v: number): number {
   return PAD.top + CHART_H - ((v - MIN_VAL) / (MAX_VAL - MIN_VAL)) * CHART_H;
 }
 
-export function ScoreTrend() {
+function formatMonthLabel(isoDate: string): string {
+  const d = new Date(isoDate);
+  return d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+}
+
+export function ScoreTrend({ history }: { history: AttemptOut[] }) {
   const { lang } = useLanguage();
-  const pts = scoreTrend.map((v, i) => ({ x: xAt(i), y: yAt(v) }));
+
+  const sorted = [...history].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  );
+
+  const pts = sorted.map((a, i) => ({
+    x: xAt(i, sorted.length),
+    y: yAt(a.overall_score),
+    label: formatMonthLabel(a.created_at),
+    score: a.overall_score,
+  }));
 
   const linePath = pts
     .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
     .join(' ');
 
-  const areaPath = [
-    ...pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`),
-    `L ${pts[pts.length - 1].x.toFixed(1)} ${(PAD.top + CHART_H).toFixed(1)}`,
-    `L ${pts[0].x.toFixed(1)} ${(PAD.top + CHART_H).toFixed(1)}`,
-    'Z',
-  ].join(' ');
+  const areaPath =
+    pts.length > 1
+      ? [
+          ...pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`),
+          `L ${pts[pts.length - 1].x.toFixed(1)} ${(PAD.top + CHART_H).toFixed(1)}`,
+          `L ${pts[0].x.toFixed(1)} ${(PAD.top + CHART_H).toFixed(1)}`,
+          'Z',
+        ].join(' ')
+      : '';
+
+  const delta =
+    sorted.length >= 2
+      ? Math.round(sorted[sorted.length - 1].overall_score - sorted[0].overall_score)
+      : null;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-[#0A0F2C] text-base">{t('scoreTrend', lang)}</h3>
-        <div className="flex items-center gap-1 text-sm font-semibold" style={{ color: '#138808' }}>
-          <ArrowUpRight size={16} />
-          {t('plus31SinceJan', lang)}
-        </div>
+        <h3 className="font-semibold text-[#0A0F2C] text-base">{t('dashboardTrendTitle', lang)}</h3>
+        {delta !== null && (
+          <div className="flex items-center gap-1 text-sm font-semibold" style={{ color: delta >= 0 ? '#138808' : '#DC2626' }}>
+            <ArrowUpRight size={16} />
+            {delta >= 0 ? '+' : ''}{delta} {t('dashboardSinceFirst', lang)}
+          </div>
+        )}
       </div>
 
       <svg
@@ -78,14 +104,16 @@ export function ScoreTrend() {
         ))}
 
         {/* Area fill */}
-        <path d={areaPath} fill="url(#areaGrad)" />
+        {areaPath && <path d={areaPath} fill="url(#areaGrad)" />}
 
-        {/* Line */}
-        <path
-          d={linePath} fill="none"
-          stroke="#FF9933" strokeWidth="2.5"
-          strokeLinecap="round" strokeLinejoin="round"
-        />
+        {/* Line (only if multiple points) */}
+        {pts.length > 1 && (
+          <path
+            d={linePath} fill="none"
+            stroke="#FF9933" strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round"
+          />
+        )}
 
         {/* Data point dots */}
         {pts.map((p, i) => (
@@ -95,13 +123,13 @@ export function ScoreTrend() {
           />
         ))}
 
-        {/* X-axis month labels */}
-        {months.map((m, i) => (
+        {/* X-axis labels */}
+        {pts.map((p, i) => (
           <text
-            key={m} x={xAt(i)} y={H - 4}
-            textAnchor="middle" fontSize="12" fill="#9CA3AF"
+            key={i} x={p.x} y={H - 4}
+            textAnchor="middle" fontSize="11" fill="#9CA3AF"
           >
-            {m}
+            {p.label}
           </text>
         ))}
       </svg>

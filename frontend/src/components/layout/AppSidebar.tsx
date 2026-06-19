@@ -25,7 +25,7 @@ const NAV_ITEMS: Array<{
 }> = [
   { labelKey: 'navDashboard',   icon: LayoutDashboard, href: '/dashboard', disabled: false },
   { labelKey: 'navChatCopilot', icon: MessageSquare,   href: '/chat',      disabled: false },
-  { labelKey: 'navAssessment',  icon: ClipboardCheck,  href: '#',          disabled: true },
+  { labelKey: 'navAssessment',  icon: ClipboardCheck,  href: '/assessment', disabled: false },
   { labelKey: 'navPolicies',    icon: FileText,        href: '#',          disabled: true },
   { labelKey: 'navIncidents',   icon: ShieldAlert,     href: '#',          disabled: true },
   { labelKey: 'navAdmin',       icon: Users,           href: '#',          disabled: true },

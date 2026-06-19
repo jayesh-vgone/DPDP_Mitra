@@ -23,6 +23,7 @@ export interface AuthInstitution {
   staff_count: number | null;
   invite_code: string;
   plan: string;
+  category: 'school' | 'higher_ed' | 'edtech';
 }
 
 export interface AuthResponse {
@@ -79,4 +80,45 @@ export interface VoiceResponse {
   transcript: string;
   message: Message;
   audio_base64?: string;
+}
+
+// ── Assessment ────────────────────────────────────────────────────────────────
+
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
+
+export interface QuestionOut {
+  id: string;
+  institution_category: string;
+  category: string;
+  question_text: string;
+  dpdp_section: string | null;
+  weight: number;
+  order_index: number;
+  answer_type: 'scale' | 'boolean';
+}
+
+export interface ResponseIn {
+  question_id: string;
+  answer_value: number;
+}
+
+export interface AttemptOut {
+  id: string;
+  institution_id: string;
+  submitted_by_user_id: string | null;
+  overall_score: number;
+  category_scores: Record<string, number>;
+  created_at: string;
+}
+
+export interface ScoresResponse {
+  latest: AttemptOut | null;
+  history: AttemptOut[];
+}
+
+export interface SubmitResponse {
+  attempt_id: string;
+  overall_score: number;
+  category_scores: Record<string, number>;
+  status_label: string;
 }
