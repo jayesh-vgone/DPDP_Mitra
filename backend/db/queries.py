@@ -474,6 +474,95 @@ def _attempt_to_dict(row) -> dict:
     }
 
 
+async def get_category_detail_for_attempt(
+    pool: asyncpg.Pool,
+    attempt_id: str,
+    category: str,
+) -> list[dict]:
+    """
+    Return per-question detail for one category within a specific attempt.
+
+    Joins assessment_responses with assessment_questions so callers get
+    the full question text, DPDP section, weight, and answer in one query.
+    """
+    rows = await pool.fetch(
+        """
+        SELECT
+            q.question_text,
+            q.dpdp_section,
+            q.weight,
+            q.answer_type,
+            r.answer_value
+        FROM assessment_responses r
+        JOIN assessment_questions q ON q.id = r.question_id
+        WHERE r.attempt_id = $1::uuid
+          AND q.category    = $2
+        ORDER BY q.order_index ASC
+        """,
+        attempt_id,
+        category,
+    )
+    return [
+        {
+            "question_text": row["question_text"],
+            "dpdp_section":  row["dpdp_section"],
+            "weight":        float(row["weight"]),
+            "answer_type":   row["answer_type"],
+            "answer_value":  float(row["answer_value"]),
+        }
+        for row in rows
+    ]
+
+
+async def get_attempt_by_id(
+    pool: asyncpg.Pool,
+    attempt_id: str,
+    institution_id: str,
+) -> dict | None:
+    """
+    Fetch a single attempt row, scoped to the institution.
+
+    Returns None if not found or if attempt belongs to a different institution
+    (prevents one institution from viewing another's data).
+    """
+    row = await pool.fetchrow(
+        """
+        SELECT id, institution_id, submitted_by_user_id,
+               overall_score, category_scores, created_at
+        FROM assessment_attempts
+        WHERE id             = $1::uuid
+          AND institution_id = $2::uuid
+        """,
+        attempt_id,
+        institution_id,
+    )
+    return None if row is None else _attempt_to_dict(row)
+
+
+async def get_latest_assessment_for_institution(
+    pool: asyncpg.Pool,
+    institution_id: str,
+) -> dict | None:
+    """
+    Return the most recent assessment attempt for an institution, or None.
+
+    Used by the chat pipeline to inject score context when the user asks
+    about their compliance status.
+    """
+    row = await pool.fetchrow(
+        """
+        SELECT id, institution_id, submitted_by_user_id,
+               overall_score, category_scores, created_at
+        FROM assessment_attempts
+        WHERE institution_id = $1::uuid
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        institution_id,
+    )
+    return None if row is None else _attempt_to_dict(row)
+
+
 async def get_assessment_scores(
     pool: asyncpg.Pool, institution_id: str
 ) -> dict:

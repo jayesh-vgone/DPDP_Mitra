@@ -15,11 +15,17 @@ class GroqSTT(STTProvider):
         language = _LANG_MAP.get(lang, "en")
         file_obj = io.BytesIO(audio_bytes)
         file_obj.name = f"audio.{audio_format}"
+        print(f"[VOICE DIAG] Groq STT call — filename: audio.{audio_format} | content-type: audio/{audio_format} | bytes: {len(audio_bytes)} | language hint: {language}")
 
-        transcription = await self._client.audio.transcriptions.create(
-            file=(f"audio.{audio_format}", file_obj, f"audio/{audio_format}"),
-            model=self._model,
-            language=language,
-            prompt="DPDP Act digital personal data protection",
-        )
-        return transcription.text.strip()
+        try:
+            transcription = await self._client.audio.transcriptions.create(
+                file=(f"audio.{audio_format}", file_obj, f"audio/{audio_format}"),
+                model=self._model,
+                language=language,
+                prompt="DPDP Act digital personal data protection",
+            )
+            print(f"[VOICE DIAG] Groq STT raw response: {repr(transcription.text)}")
+            return transcription.text.strip()
+        except Exception as e:
+            print(f"[VOICE DIAG] Groq STT ERROR: {type(e).__name__}: {e}")
+            raise

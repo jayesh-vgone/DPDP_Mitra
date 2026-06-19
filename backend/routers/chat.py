@@ -9,6 +9,7 @@ from providers.tts.factory import get_tts_provider
 from prompts import build_system_prompt
 from retrieval import retrieve_chunks
 from guardrails import check_injection, check_output_scope
+from intent import is_score_query
 from db.pool import get_pool
 from db import queries
 from middleware.session import get_session_user
@@ -70,8 +71,20 @@ async def chat(req: ChatRequest, user_id: str = Depends(get_session_user)):
     if chunks:
         print(f"[rag] {len(chunks)} chunks retrieved: {[c['section'] for c in chunks]}")
 
+    # ── Score-context injection (read-only DB data, not user input) ───────────
+    assessment_ctx = None
+    if is_score_query(req.message):
+        user_rec = await queries.get_user_by_id(pool, user_id)
+        if user_rec and user_rec.get("institution_id"):
+            assessment_ctx = await queries.get_latest_assessment_for_institution(
+                pool, user_rec["institution_id"]
+            )
+            if assessment_ctx:
+                print(f"[intent] score query detected — injecting assessment context "
+                      f"(overall={assessment_ctx['overall_score']:.0f})")
+
     # ── Layer 2: hardened system prompt (anti-injection prefix in prompts.py) ─
-    system_prompt = build_system_prompt(req.lang, chunks)
+    system_prompt = build_system_prompt(req.lang, chunks, assessment=assessment_ctx)
 
     reply = await llm.chat(system_prompt, db_history, req.message)
 

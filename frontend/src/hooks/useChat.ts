@@ -102,18 +102,23 @@ export function useChat(): ChatHook {
       setIsLoading(true);
 
       try {
+        console.log('[VOICE DIAG] sendVoiceMessage — blob.size:', audioBlob.size, '| blob.type:', audioBlob.type);
+
         const base64 = await new Promise<string>((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => {
             const result = reader.result as string;
-            resolve(result.split(',')[1]);
+            const data = result.split(',')[1];
+            console.log('[VOICE DIAG] base64 length before send:', data.length);
+            resolve(data);
           };
           reader.readAsDataURL(audioBlob);
         });
 
-        // Derive format from MIME type (e.g. "audio/webm" → "webm")
+        // Derive format from MIME type (e.g. "audio/webm;codecs=opus" → "webm")
         const mimeType = audioBlob.type || 'audio/webm';
         const audioFormat = mimeType.split('/')[1].split(';')[0] || 'webm';
+        console.log('[VOICE DIAG] audioFormat derived:', audioFormat, '| mimeType:', mimeType);
 
         const res = await sendVoice({
           conversation_id: activeConvRef.current ?? undefined,
@@ -139,6 +144,10 @@ export function useChat(): ChatHook {
 
         setMessages((prev) => [...prev, userMsg, res.message]);
 
+        console.log('[VOICE DIAG] voice response — transcript:', res.transcript,
+          '| reply length:', res.message.content.length,
+          '| audio_base64 present:', !!res.audio_base64);
+
         if (res.audio_base64) {
           playAudio(res.audio_base64);
         } else {
@@ -147,7 +156,7 @@ export function useChat(): ChatHook {
 
         await refreshConversations();
       } catch (err) {
-        console.error('sendVoiceMessage error:', err);
+        console.error('[VOICE DIAG] sendVoiceMessage error:', err);
       } finally {
         setIsLoading(false);
       }

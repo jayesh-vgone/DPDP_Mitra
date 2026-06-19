@@ -48,3 +48,19 @@ class SubmitResponse(BaseModel):
     overall_score: float
     category_scores: dict[str, float]
     status_label: str
+
+
+class CategoryQuestionOut(BaseModel):
+    question_text: str
+    dpdp_section: Optional[str]
+    weight: float
+    answer_type: str
+    answer_value: float
+
+
+class CategoryDetailOut(BaseModel):
+    category: str
+    score_pct: float
+    maturity_band: str
+    explanation: str
+    questions: list[CategoryQuestionOut]

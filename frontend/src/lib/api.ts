@@ -10,6 +10,7 @@ import type {
   ResponseIn,
   ScoresResponse,
   SubmitResponse,
+  CategoryDetailOut,
 } from './types';
 import {
   mockSendChat,
@@ -117,4 +118,26 @@ export async function submitAssessment(responses: ResponseIn[]): Promise<SubmitR
 
 export async function getAssessmentScores(): Promise<ScoresResponse> {
   return apiFetch<ScoresResponse>('/assessment/scores');
+}
+
+export async function getCategoryDetail(
+  attemptId: string,
+  categorySlug: string,
+): Promise<CategoryDetailOut> {
+  return apiFetch<CategoryDetailOut>(`/assessment/${attemptId}/categories/${categorySlug}`);
+}
+
+export async function downloadAssessmentReport(attemptId: string): Promise<void> {
+  const base = process.env.NEXT_PUBLIC_API_URL;
+  const res = await fetch(`${base}/assessment/${attemptId}/report`, {
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error(`Report download failed: ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dpdp-compliance-report-${attemptId.slice(0, 8)}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
 }

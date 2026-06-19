@@ -11,6 +11,7 @@ from providers.tts.factory import get_tts_provider
 from prompts import build_system_prompt
 from retrieval import retrieve_chunks
 from guardrails import check_injection, check_output_scope
+from intent import is_score_query
 from db.pool import get_pool
 from db import queries
 from middleware.session import get_session_user
@@ -40,8 +41,11 @@ async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
     llm = get_llm_provider()
     tts = get_tts_provider()
 
+    print(f"[VOICE DIAG] received audio_base64 length: {len(req.audio_base64)}")
     audio_bytes = base64.b64decode(req.audio_base64)
+    print(f"[VOICE DIAG] decoded audio_bytes: {len(audio_bytes)} bytes | format: {req.audio_format} | lang: {req.lang}")
     transcript = await stt.transcribe(audio_bytes, req.audio_format, req.lang)
+    print(f"[VOICE DIAG] STT transcript: {repr(transcript)}")
 
     # ── Layer 1: input-level injection guard (on the transcript) ─────────────
     injection_refusal = check_injection(transcript, req.lang)
@@ -71,17 +75,32 @@ async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
     if chunks:
         print(f"[rag] {len(chunks)} chunks retrieved: {[c['section'] for c in chunks]}")
 
+    # ── Score-context injection ────────────────────────────────────────────────
+    assessment_ctx = None
+    if is_score_query(transcript):
+        user_rec = await queries.get_user_by_id(pool, user_id)
+        if user_rec and user_rec.get("institution_id"):
+            assessment_ctx = await queries.get_latest_assessment_for_institution(
+                pool, user_rec["institution_id"]
+            )
+            if assessment_ctx:
+                print(f"[intent] score query detected — injecting assessment context "
+                      f"(overall={assessment_ctx['overall_score']:.0f})")
+
     # ── Layer 2: hardened system prompt (anti-injection prefix in prompts.py) ─
-    system_prompt = build_system_prompt(req.lang, chunks)
+    system_prompt = build_system_prompt(req.lang, chunks, assessment=assessment_ctx)
 
     reply = await llm.chat(system_prompt, db_history, transcript)
+    print(f"[VOICE DIAG] LLM reply length: {len(reply)} chars | first 120: {repr(reply[:120])}")
 
     # ── Layer 3: output scope check ───────────────────────────────────────────
     scope_refusal = check_output_scope(transcript, reply, req.lang)
     if scope_refusal:
         reply = scope_refusal
+        print(f"[VOICE DIAG] reply replaced by scope_refusal")
 
     tts_bytes = await tts.synthesize(reply, req.lang)
+    print(f"[VOICE DIAG] TTS result: {'None (browser TTS)' if tts_bytes is None else f'{len(tts_bytes)} bytes'}")
     audio_b64 = base64.b64encode(tts_bytes).decode() if tts_bytes else None
 
     # ── Persist conversation + messages ───────────────────────────────────────

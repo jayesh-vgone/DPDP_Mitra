@@ -103,3 +103,54 @@ def score_label(overall_score: float) -> str:
     if overall_score <= 70:
         return "Moderate"
     return "Good"
+
+
+# URL-safe slug ↔ canonical category name
+CATEGORY_SLUGS: dict[str, str] = {
+    "consent-management":       "Consent Management",
+    "data-security":            "Data Security",
+    "vendor-data-processor-risk": "Vendor / Data Processor Risk",
+    "data-retention":           "Data Retention",
+    "childrens-data":           "Children's Data",
+    "breach-readiness":         "Breach Readiness",
+    "cross-border-transfer":    "Cross-Border Transfer",
+    "grievance-redressal":      "Grievance Redressal",
+}
+
+CATEGORY_TO_SLUG: dict[str, str] = {v: k for k, v in CATEGORY_SLUGS.items()}
+
+
+def get_category_explanation(
+    category: str,
+    score_pct: float,
+    maturity_band: str,
+    low_scoring_questions: list[str],
+) -> str:
+    """
+    Generate a deterministic 1-2 sentence explanation for a risk category.
+    Rule-based — no LLM call. Reproducible and fast.
+    """
+    band_phrases = {
+        "Critical":  "requires urgent attention",
+        "Moderate":  "shows some progress but needs improvement",
+        "Good":      "demonstrates strong compliance practices",
+    }
+    phrase = band_phrases.get(maturity_band, "requires review")
+
+    def _trunc(s: str, n: int = 80) -> str:
+        return s if len(s) <= n else s[:n - 3] + "..."
+
+    if not low_scoring_questions:
+        return f"{category} {phrase}, scoring {score_pct:.0f}/100."
+
+    q1 = _trunc(low_scoring_questions[0])
+    if len(low_scoring_questions) >= 2:
+        q2 = _trunc(low_scoring_questions[1])
+        return (
+            f"{category} {phrase}, scoring {score_pct:.0f}/100. "
+            f"Priority focus areas: '{q1}' and '{q2}'."
+        )
+    return (
+        f"{category} {phrase}, scoring {score_pct:.0f}/100. "
+        f"Key focus area: '{q1}'."
+    )

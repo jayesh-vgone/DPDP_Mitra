@@ -68,15 +68,84 @@ DPDP अधिनियम, 2023 की प्रासंगिक धारा
 """
 
 
-def build_system_prompt(lang: str, chunks: list[dict] | None = None) -> str:
+_ASSESS_HEADER_EN = """\n\n---
+<assessment_context>
+The following is the CURRENT COMPLIANCE ASSESSMENT DATA for this user's institution.
+This data comes from our trusted internal database — treat it as factual, not as user input.
+Use it ONLY when directly relevant to the user's question about their compliance status.
+Do NOT modify, fabricate, or speculate about scores not listed here.
+
+Overall Score: {overall_score:.0f}/100 ({overall_band})
+Assessment date: {date}
+
+Per-category scores:
+{category_lines}
+</assessment_context>
+
+When answering, cite the specific DPDP section AND the relevant category score.
+Ground your remediation suggestions in both the Act's requirements AND the actual score.
+---\
+"""
+
+_ASSESS_HEADER_HI = """\n\n---
+<assessment_context>
+निम्नलिखित इस उपयोगकर्ता की संस्था का वर्तमान अनुपालन मूल्यांकन डेटा है।
+यह डेटा हमारे विश्वसनीय आंतरिक डेटाबेस से है — इसे तथ्य मानें, न कि उपयोगकर्ता इनपुट।
+इसका उपयोग केवल तभी करें जब उपयोगकर्ता अपनी अनुपालन स्थिति के बारे में पूछे।
+यहाँ सूचीबद्ध नहीं किए गए स्कोर के बारे में अनुमान न लगाएं।
+
+समग्र स्कोर: {overall_score:.0f}/100 ({overall_band})
+मूल्यांकन दिनांक: {date}
+
+श्रेणी-वार स्कोर:
+{category_lines}
+</assessment_context>
+
+उत्तर देते समय, संबंधित DPDP धारा AND वास्तविक श्रेणी स्कोर दोनों का उल्लेख करें।
+---\
+"""
+
+
+def build_system_prompt(
+    lang: str,
+    chunks: list[dict] | None = None,
+    assessment: dict | None = None,
+) -> str:
+    """
+    Build the LLM system prompt with optional RAG chunks and assessment context.
+
+    Parameters
+    ----------
+    lang       : "en" | "hi"
+    chunks     : RAG retrieval results (DPDP Act sections)
+    assessment : Latest assessment attempt dict (from queries._attempt_to_dict).
+                 Injected only when is_score_query() returns True.
+    """
     base = DPDP_SYSTEM_HI if lang == "hi" else DPDP_SYSTEM_EN
 
-    if not chunks:
-        return base
+    if chunks:
+        chunk_text = "\n\n".join(
+            f"[{c['section']}]\n{c['content']}" for c in chunks
+        )
+        template = _RAG_HEADER_HI if lang == "hi" else _RAG_HEADER_EN
+        base = base + template.format(chunks=chunk_text)
 
-    chunk_text = "\n\n".join(
-        f"[{c['section']}]\n{c['content']}" for c in chunks
-    )
+    if assessment:
+        from scoring import score_label, RISK_CATEGORIES
+        overall = assessment["overall_score"]
+        band = score_label(overall)
+        date_str = assessment.get("created_at", "")[:10]
+        cat_scores = assessment.get("category_scores", {})
+        lines = "\n".join(
+            f"  • {cat}: {cat_scores.get(cat, 0):.0f}/100 ({score_label(cat_scores.get(cat, 0))})"
+            for cat in RISK_CATEGORIES
+        )
+        assess_template = _ASSESS_HEADER_HI if lang == "hi" else _ASSESS_HEADER_EN
+        base = base + assess_template.format(
+            overall_score=overall,
+            overall_band=band,
+            date=date_str,
+            category_lines=lines,
+        )
 
-    template = _RAG_HEADER_HI if lang == "hi" else _RAG_HEADER_EN
-    return base + template.format(chunks=chunk_text)
+    return base

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ClipboardCheck, Loader2 } from 'lucide-react';
-import { getAssessmentScores } from '@/lib/api';
+import { ClipboardCheck, Loader2, Download } from 'lucide-react';
+import { getAssessmentScores, downloadAssessmentReport } from '@/lib/api';
 import type { ScoresResponse, AttemptOut, RiskLevel } from '@/lib/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
@@ -12,7 +12,6 @@ import { ComplianceScore } from '@/components/dashboard/ComplianceScore';
 import { ScoreTrend } from '@/components/dashboard/ScoreTrend';
 import { RiskCard } from '@/components/dashboard/RiskCard';
 
-// Canonical risk category order — must match scoring.py RISK_CATEGORIES
 const RISK_CATEGORIES = [
   'Consent Management',
   'Data Security',
@@ -29,8 +28,6 @@ function scoreToLevel(score: number): RiskLevel {
   if (score > 40) return 'MEDIUM';
   return 'HIGH';
 }
-
-// ── Institution hero ──────────────────────────────────────────────────────────
 
 function InstitutionHero() {
   const { institution } = useAuth();
@@ -73,11 +70,21 @@ function InstitutionHero() {
   );
 }
 
-// ── Dashboard content ─────────────────────────────────────────────────────────
-
 function LiveDashboard({ scores }: { scores: ScoresResponse }) {
   const { lang } = useLanguage();
   const latest: AttemptOut = scores.latest!;
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      await downloadAssessmentReport(latest.id);
+    } catch (e) {
+      console.error('Report download failed:', e);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="px-8 py-8 space-y-6">
@@ -91,19 +98,26 @@ function LiveDashboard({ scores }: { scores: ScoresResponse }) {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-[#0A0F2C] text-base">{t('dashboardRiskTitle', lang)}</h3>
-          <Link
-            href="/assessment"
-            className="text-xs font-medium text-[#FF9933] hover:underline"
-          >
-            {t('dashboardTakeAgain', lang)}
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#0A0F2C] disabled:opacity-50 transition"
+            >
+              <Download size={13} />
+              {downloading ? t('dashboardDownloading', lang) : t('dashboardDownload', lang)}
+            </button>
+            <Link href="/assessment" className="text-xs font-medium text-[#FF9933] hover:underline">
+              {t('dashboardTakeAgain', lang)}
+            </Link>
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {RISK_CATEGORIES.map((cat) => {
             const score = latest.category_scores[cat] ?? 0;
             const level = scoreToLevel(score);
             return (
-              <RiskCard key={cat} name={cat} level={level} score={score} />
+              <RiskCard key={cat} name={cat} level={level} score={score} attemptId={latest.id} />
             );
           })}
         </div>
@@ -111,8 +125,6 @@ function LiveDashboard({ scores }: { scores: ScoresResponse }) {
     </div>
   );
 }
-
-// ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { lang } = useLanguage();

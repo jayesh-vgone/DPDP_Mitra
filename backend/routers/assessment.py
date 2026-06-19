@@ -11,7 +11,9 @@ Endpoints:
   GET  /assessment/scores      — latest + history of attempts for the institution
 """
 
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 
 from db.pool import get_pool
 from db import queries
@@ -22,8 +24,13 @@ from schemas.assessment import (
     SubmitRequest,
     SubmitResponse,
     AttemptOut,
+    CategoryDetailOut,
+    CategoryQuestionOut,
 )
-from scoring import compute_scores, score_label, ResponseItem
+from scoring import (
+    compute_scores, score_label, ResponseItem,
+    CATEGORY_SLUGS, get_category_explanation,
+)
 
 router = APIRouter(prefix="/assessment", tags=["assessment"])
 
@@ -148,6 +155,90 @@ async def submit_assessment(
         overall_score=result["overall_score"],
         category_scores=result["category_scores"],
         status_label=score_label(result["overall_score"]),
+    )
+
+
+@router.get("/{attempt_id}/categories/{category_slug}", response_model=CategoryDetailOut)
+async def get_category_detail(
+    attempt_id: str,
+    category_slug: str,
+    user_id: str = Depends(get_session_user),
+):
+    """
+    Return per-question drill-down for one risk category within a specific attempt.
+
+    The attempt must belong to the calling user's institution — prevents
+    cross-institution data access.
+    """
+    # Resolve the slug back to the canonical category name
+    category = CATEGORY_SLUGS.get(category_slug)
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Unknown category slug: {category_slug}",
+        )
+
+    institution = await _resolve_institution(user_id)
+    pool = get_pool()
+
+    # Authorization: confirm the attempt belongs to this institution
+    attempt = await queries.get_attempt_by_id(pool, attempt_id, institution["id"])
+    if not attempt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment attempt not found",
+        )
+
+    score_pct = attempt["category_scores"].get(category, 0.0)
+    maturity_band = score_label(score_pct)
+
+    question_rows = await queries.get_category_detail_for_attempt(pool, attempt_id, category)
+
+    # Derive low-scoring questions for the explanation (sorted ascending by answer)
+    scored = sorted(question_rows, key=lambda q: q["answer_value"])
+    low_qs = [q["question_text"] for q in scored if q["answer_value"] <= 2][:2]
+    if not low_qs:
+        low_qs = [scored[0]["question_text"]] if scored else []
+
+    explanation = get_category_explanation(category, score_pct, maturity_band, low_qs)
+
+    return CategoryDetailOut(
+        category=category,
+        score_pct=round(score_pct, 1),
+        maturity_band=maturity_band,
+        explanation=explanation,
+        questions=[CategoryQuestionOut(**q) for q in question_rows],
+    )
+
+
+@router.get("/{attempt_id}/report")
+async def download_report(
+    attempt_id: str,
+    user_id: str = Depends(get_session_user),
+):
+    """
+    Generate and stream a branded PDF compliance report for one assessment attempt.
+    """
+    institution = await _resolve_institution(user_id)
+    pool = get_pool()
+
+    attempt = await queries.get_attempt_by_id(pool, attempt_id, institution["id"])
+    if not attempt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment attempt not found",
+        )
+
+    from report import generate_pdf
+
+    # PDF generation is synchronous (ReportLab); run in thread pool
+    pdf_bytes = await asyncio.to_thread(generate_pdf, attempt, institution)
+
+    filename = f"dpdp-compliance-report-{attempt_id[:8]}.pdf"
+    return StreamingResponse(
+        iter([pdf_bytes]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

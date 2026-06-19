@@ -1,9 +1,10 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import Link from 'next/link';
+import { TrendingUp, TrendingDown, Minus, ChevronRight } from 'lucide-react';
 import type { RiskLevel } from '@/lib/types';
 import { useLanguage } from '@/context/LanguageContext';
-import { t, type TranslationKey, RISK_CATEGORY_HI } from '@/lib/translations';
+import { t, type TranslationKey, RISK_CATEGORY_HI, CATEGORY_TO_SLUG } from '@/lib/translations';
 
 const LEVEL_STYLE: Record<
   RiskLevel,
@@ -36,22 +37,28 @@ interface RiskCardProps {
   name: string;
   level: RiskLevel;
   score: number;
+  attemptId?: string;
 }
 
-export function RiskCard({ name, level, score }: RiskCardProps) {
+export function RiskCard({ name, level, score, attemptId }: RiskCardProps) {
   const { lang } = useLanguage();
   const { badgeBg, borderColor, levelKey, descKey, icon } = LEVEL_STYLE[level];
 
   const displayName = lang === 'hi' ? (RISK_CATEGORY_HI[name] ?? name) : name;
+  const slug = CATEGORY_TO_SLUG[name];
+  const href = attemptId && slug ? `/assessment/${attemptId}/category/${slug}` : undefined;
 
-  return (
+  const inner = (
     <div
-      className="bg-white rounded-2xl border border-gray-100 p-5"
+      className="bg-white rounded-2xl border border-gray-100 p-5 h-full transition-shadow hover:shadow-md"
       style={{ borderLeft: `3px solid ${borderColor}` }}
     >
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-semibold text-[#0A0F2C]">{displayName}</p>
-        {icon}
+        <div className="flex items-center gap-1.5">
+          {icon}
+          {href && <ChevronRight size={13} className="text-gray-400" />}
+        </div>
       </div>
       <div
         className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold mb-3 text-white"
@@ -63,6 +70,18 @@ export function RiskCard({ name, level, score }: RiskCardProps) {
       <p className="text-xs font-semibold mt-2" style={{ color: borderColor }}>
         {Math.round(score)}/100
       </p>
+      {href && (
+        <p className="text-[10px] text-gray-400 mt-1.5">{t('dashboardViewDetails', lang)}</p>
+      )}
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block h-full">
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
 }

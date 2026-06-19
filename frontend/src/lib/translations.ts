@@ -151,6 +151,18 @@ const UI = {
   dashboardSinceFirst:  { en: 'since first assessment', hi: 'पहले मूल्यांकन से' },
   dashboardTakeAgain:   { en: 'Retake Assessment', hi: 'मूल्यांकन फिर से करें' },
   dashboardLoading:     { en: 'Loading…', hi: 'लोड हो रहा है…' },
+  dashboardDownload:    { en: 'Download Report', hi: 'रिपोर्ट डाउनलोड करें' },
+  dashboardDownloading: { en: 'Preparing PDF…', hi: 'PDF तैयार हो रही है…' },
+  dashboardViewDetails: { en: 'View details', hi: 'विवरण देखें' },
+
+  // Category drill-down page
+  drillBackToDashboard: { en: '← Back to Dashboard', hi: '← डैशबोर्ड पर वापस' },
+  drillQuestionsTitle:  { en: 'Question-by-question breakdown', hi: 'प्रश्न-दर-प्रश्न विश्लेषण' },
+  drillAnswerLabel:     { en: 'Your answer', hi: 'आपका उत्तर' },
+  drillDpdpSection:     { en: 'DPDP Section', hi: 'DPDP धारा' },
+  drillWeight:          { en: 'Weight', hi: 'भार' },
+  drillLoading:         { en: 'Loading category detail…', hi: 'श्रेणी विवरण लोड हो रहा है…' },
+  drillError:           { en: 'Failed to load category detail.', hi: 'श्रेणी विवरण लोड नहीं हो सका।' },
 } satisfies Record<string, { en: string; hi: string }>;
 
 export type TranslationKey = keyof typeof UI;
@@ -158,6 +170,18 @@ export type TranslationKey = keyof typeof UI;
 export function t(key: TranslationKey, lang: Lang): string {
   return UI[key][lang];
 }
+
+// ── Category name → URL-safe slug (must match backend scoring.py CATEGORY_TO_SLUG) ──
+export const CATEGORY_TO_SLUG: Record<string, string> = {
+  'Consent Management':           'consent-management',
+  'Data Security':                'data-security',
+  'Vendor / Data Processor Risk': 'vendor-data-processor-risk',
+  'Data Retention':               'data-retention',
+  "Children's Data":              'childrens-data',
+  'Breach Readiness':             'breach-readiness',
+  'Cross-Border Transfer':        'cross-border-transfer',
+  'Grievance Redressal':          'grievance-redressal',
+};
 
 // ── Risk category name → Hindi (keyed by the canonical English category name) ──
 export const RISK_CATEGORY_HI: Record<string, string> = {

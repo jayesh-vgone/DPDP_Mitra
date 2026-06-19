@@ -122,3 +122,19 @@ export interface SubmitResponse {
   category_scores: Record<string, number>;
   status_label: string;
 }
+
+export interface CategoryQuestionOut {
+  question_text: string;
+  dpdp_section: string | null;
+  weight: number;
+  answer_type: 'scale' | 'boolean';
+  answer_value: number;
+}
+
+export interface CategoryDetailOut {
+  category: string;
+  score_pct: number;
+  maturity_band: string;
+  explanation: string;
+  questions: CategoryQuestionOut[];
+}
