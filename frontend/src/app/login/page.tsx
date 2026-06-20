@@ -41,7 +41,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#0A0F2C] flex flex-col items-center justify-center px-4">
       {/* Language toggle — top right */}
       <div className="absolute top-4 right-6">
         <LanguageToggle />
@@ -58,9 +58,9 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-bold text-[#0A0F2C] mb-1">{t('loginTitle', lang)}</h2>
-          <p className="text-sm text-gray-500 mb-6">{t('loginSubtitle', lang)}</p>
+        <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1A2756] p-8">
+          <h2 className="text-xl font-bold text-[#0A0F2C] dark:text-gray-100 mb-1">{t('loginTitle', lang)}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t('loginSubtitle', lang)}</p>
 
           {error && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -70,7 +70,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+              <label className="block text-sm font-medium text-[#0A0F2C] dark:text-gray-200 mb-1.5">
                 {t('emailLabel', lang)}
               </label>
               <input
@@ -78,13 +78,13 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] bg-white dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
                 placeholder="you@school.edu.in"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+              <label className="block text-sm font-medium text-[#0A0F2C] dark:text-gray-200 mb-1.5">
                 {t('passwordLabel', lang)}
               </label>
               <input
@@ -92,7 +92,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] bg-white dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
                 placeholder="••••••••"
               />
             </div>
@@ -107,7 +107,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
             {t('noAccount', lang)}{' '}
             <Link href="/register" className="text-[#FF9933] font-medium hover:underline">
               {t('registerLink', lang)}

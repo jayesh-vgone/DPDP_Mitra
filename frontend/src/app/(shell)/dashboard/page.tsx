@@ -32,31 +32,31 @@ function scoreToLevel(score: number): RiskLevel {
 function InstitutionHero() {
   const { institution } = useAuth();
   return (
-    <div className="bg-white border-b border-gray-200 px-8 py-6">
-      <h2 className="text-2xl font-bold text-[#0A0F2C]">{institution?.name ?? '—'}</h2>
+    <div className="bg-white dark:bg-[#0F1A3E] border-b border-gray-200 dark:border-[#1A2756] px-8 py-6">
+      <h2 className="text-2xl font-bold text-[#0A0F2C] dark:text-gray-100">{institution?.name ?? '—'}</h2>
       <div className="flex flex-wrap gap-2 mt-3">
         {institution?.type && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#FFF3E0] text-[#FF9933] border border-[#FF9933]/30">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#FFF3E0] dark:bg-[#FF9933]/10 text-[#FF9933] border border-[#FF9933]/30">
             {institution.type}
           </span>
         )}
         {institution?.location && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-[#1A2756] text-gray-600 dark:text-gray-300">
             {institution.location}
           </span>
         )}
         {institution?.board && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-[#1A2756] text-gray-600 dark:text-gray-300">
             {institution.board}
           </span>
         )}
         {institution?.student_count != null && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-[#1A2756] text-gray-600 dark:text-gray-300">
             {institution.student_count.toLocaleString()} students
           </span>
         )}
         {institution?.staff_count != null && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-[#1A2756] text-gray-600 dark:text-gray-300">
             {institution.staff_count} staff
           </span>
         )}
@@ -97,12 +97,12 @@ function LiveDashboard({ scores }: { scores: ScoresResponse }) {
       {/* Risk breakdown */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-[#0A0F2C] text-base">{t('dashboardRiskTitle', lang)}</h3>
+          <h3 className="font-semibold text-[#0A0F2C] dark:text-gray-100 text-base">{t('dashboardRiskTitle', lang)}</h3>
           <div className="flex items-center gap-3">
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#0A0F2C] disabled:opacity-50 transition"
+              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-[#0A0F2C] dark:hover:text-gray-100 disabled:opacity-50 transition"
             >
               <Download size={13} />
               {downloading ? t('dashboardDownloading', lang) : t('dashboardDownload', lang)}
@@ -139,7 +139,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="h-full overflow-y-auto bg-[#F9FAFB]">
+    <div className="h-full overflow-y-auto bg-[#F9FAFB] dark:bg-[#0A0F2C]">
       <InstitutionHero />
 
       {loading && (
@@ -151,13 +151,13 @@ export default function DashboardPage() {
 
       {!loading && !scores?.latest && (
         <div className="flex flex-col items-center justify-center px-8 py-24 text-center">
-          <div className="bg-[#FFF3E0] p-5 rounded-2xl mb-6">
+          <div className="bg-[#FFF3E0] dark:bg-[#FF9933]/10 p-5 rounded-2xl mb-6">
             <ClipboardCheck size={40} className="text-[#FF9933]" />
           </div>
-          <h3 className="text-xl font-bold text-[#0A0F2C] mb-3">
+          <h3 className="text-xl font-bold text-[#0A0F2C] dark:text-gray-100 mb-3">
             {t('dashboardBlankTitle', lang)}
           </h3>
-          <p className="text-sm text-gray-500 max-w-sm leading-relaxed mb-8">
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm leading-relaxed mb-8">
             {t('dashboardBlankBody', lang)}
           </p>
           <Link

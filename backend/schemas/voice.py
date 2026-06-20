@@ -16,3 +16,4 @@ class VoiceResponse(BaseModel):
     transcript: str
     message: MessageOut
     audio_base64: Optional[str] = None
+    assessment_mode: bool = False

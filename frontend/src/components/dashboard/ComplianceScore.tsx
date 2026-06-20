@@ -27,8 +27,8 @@ export function ComplianceScore({ score }: { score: number }) {
   const arc2Rotate = (firstEnd / 100) * 360 - 90;
 
   return (
-    <div className="relative bg-white rounded-2xl border border-gray-100 p-6 flex flex-col overflow-hidden">
-      <h3 className="font-semibold text-[#0A0F2C] text-base mb-4">{t('dashboardScoreTitle', lang)}</h3>
+    <div className="relative bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-6 flex flex-col overflow-hidden">
+      <h3 className="font-semibold text-[#0A0F2C] dark:text-gray-100 text-base mb-4">{t('dashboardScoreTitle', lang)}</h3>
 
       {/* Ashoka Chakra watermark */}
       <div
@@ -43,7 +43,7 @@ export function ComplianceScore({ score }: { score: number }) {
         <div className="relative w-48 h-48">
           <svg viewBox="0 0 200 200" className="w-full h-full">
             {/* Background track */}
-            <circle cx={CX} cy={CY} r={RADIUS} fill="none" stroke="#E5E7EB" strokeWidth="18" />
+            <circle cx={CX} cy={CY} r={RADIUS} fill="none" stroke="var(--chart-track)" strokeWidth="18" />
             {/* Arc 1: saffron, 0–50% */}
             {firstFilled > 0 && (
               <circle
@@ -66,7 +66,7 @@ export function ComplianceScore({ score }: { score: number }) {
 
           {/* Center label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-4xl font-bold text-[#0A0F2C] leading-none">{Math.round(score)}</span>
+            <span className="text-4xl font-bold leading-none" style={{ color: 'var(--score-center-text)' }}>{Math.round(score)}</span>
             <span className="text-xs text-[#9CA3AF] mt-1">{t('outOf100', lang)}</span>
             <span className="text-sm font-semibold mt-1" style={{ color }}>
               {t(labelKey, lang)}

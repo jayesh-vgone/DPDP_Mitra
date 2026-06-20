@@ -123,15 +123,15 @@ function QuestionRow({
     lang === 'hi' ? (QUESTION_HI[question.question_text] ?? question.question_text) : question.question_text;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+    <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-5 space-y-4">
       <div className="flex gap-3">
-        <span className="shrink-0 w-6 h-6 rounded-full bg-[#FFF3E0] flex items-center justify-center text-xs font-bold text-[#FF9933]">
+        <span className="shrink-0 w-6 h-6 rounded-full bg-[#FFF3E0] dark:bg-[#FF9933]/10 flex items-center justify-center text-xs font-bold text-[#FF9933]">
           {index + 1}
         </span>
         <div className="flex-1">
-          <p className="text-sm font-medium text-[#0A0F2C] leading-relaxed">{displayText}</p>
+          <p className="text-sm font-medium text-[#0A0F2C] dark:text-gray-100 leading-relaxed">{displayText}</p>
           {question.dpdp_section && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
               {t('wizardDpdpSection', lang)}: {question.dpdp_section}
             </p>
           )}
@@ -170,9 +170,9 @@ function ReviewScreen({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="text-xl font-bold text-[#0A0F2C] mb-2">{t('wizardReviewTitle', lang)}</h2>
-        <p className="text-sm text-gray-500">{t('wizardReviewBody', lang)}</p>
+      <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-6">
+        <h2 className="text-xl font-bold text-[#0A0F2C] dark:text-gray-100 mb-2">{t('wizardReviewTitle', lang)}</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{t('wizardReviewBody', lang)}</p>
       </div>
 
       {RISK_CATEGORIES.map((cat) => {
@@ -181,10 +181,10 @@ function ReviewScreen({
         const catName = lang === 'hi' ? (RISK_CATEGORY_HI[cat] ?? cat) : cat;
         const answered = questions.filter((q) => answers[q.id] !== undefined).length;
         return (
-          <div key={cat} className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div key={cat} className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-[#0A0F2C] text-sm">{catName}</h3>
-              <span className="text-xs text-gray-400">
+              <h3 className="font-semibold text-[#0A0F2C] dark:text-gray-100 text-sm">{catName}</h3>
+              <span className="text-xs text-gray-400 dark:text-gray-500">
                 {answered}/{questions.length}
               </span>
             </div>
@@ -227,7 +227,7 @@ function ReviewScreen({
           type="button"
           onClick={onBack}
           disabled={submitting}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A2756] disabled:opacity-50 transition"
         >
           <ChevronLeft size={16} />
           {t('wizardBack', lang)}
@@ -369,18 +369,18 @@ export default function AssessmentPage() {
   // ── Layout ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full overflow-y-auto bg-[#F9FAFB]">
+    <div className="h-full overflow-y-auto bg-[#F9FAFB] dark:bg-[#0A0F2C]">
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-[#0A0F2C]">{t('wizardTitle', lang)}</h1>
-          <p className="text-xs text-gray-400 mt-1">{t('wizardNoPartial', lang)}</p>
+          <h1 className="text-2xl font-bold text-[#0A0F2C] dark:text-gray-100">{t('wizardTitle', lang)}</h1>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('wizardNoPartial', lang)}</p>
         </div>
 
         {/* Progress bar */}
         <div className="space-y-2">
-          <div className="flex justify-between text-xs text-gray-500">
+          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
             <span>
               {isReview
                 ? t('wizardReviewTitle', lang)
@@ -388,7 +388,7 @@ export default function AssessmentPage() {
             </span>
             <span>{isReview ? '100%' : `${Math.round(((stepIndex) / totalSteps) * 100)}%`}</span>
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-gray-200 dark:bg-[#1A2756] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
@@ -430,11 +430,11 @@ export default function AssessmentPage() {
         {!isReview && currentCategory && (
           <div className="space-y-4">
             {/* Step title */}
-            <div className="bg-white rounded-2xl border border-gray-100 px-6 py-4">
+            <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] px-6 py-4">
               <p className="text-xs font-medium text-[#FF9933] uppercase tracking-wider mb-1">
                 {t('wizardStepLabel', lang)} {stepIndex + 1} — {steps.length} {t('wizardOfLabel', lang)}
               </p>
-              <h2 className="text-lg font-bold text-[#0A0F2C]">
+              <h2 className="text-lg font-bold text-[#0A0F2C] dark:text-gray-100">
                 {lang === 'hi' ? (RISK_CATEGORY_HI[currentCategory] ?? currentCategory) : currentCategory}
               </h2>
             </div>
@@ -464,7 +464,7 @@ export default function AssessmentPage() {
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A2756] transition"
                 >
                   <ChevronLeft size={16} />
                   {t('wizardBack', lang)}

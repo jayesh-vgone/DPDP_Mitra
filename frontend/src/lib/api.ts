@@ -6,11 +6,22 @@ import type {
   Message,
   VoiceRequest,
   VoiceResponse,
+  ProfileResponse,
+  UpdateProfileRequest,
+  UpdateInstitutionDetailsRequest,
+  InstitutionDetails,
+  ChangePasswordRequest,
   QuestionOut,
   ResponseIn,
   ScoresResponse,
   SubmitResponse,
   CategoryDetailOut,
+  AdminUser,
+  AdminQuestion,
+  AdminInstitution,
+  QuestionUpdate,
+  QuestionCreate,
+  InstitutionCategory,
 } from './types';
 import {
   mockSendChat,
@@ -101,6 +112,92 @@ export async function getConversations(): Promise<Conversation[]> {
 export async function getMessages(conversationId: string): Promise<Message[]> {
   if (useMock()) return mockGetMessages(conversationId);
   return apiFetch<Message[]>(`/conversations/${conversationId}/messages`);
+}
+
+// ── Profile endpoints ──────────────────────────────────────────────────────────
+
+export async function getProfile(): Promise<ProfileResponse> {
+  return apiFetch<ProfileResponse>('/profile');
+}
+
+export async function updateProfile(payload: UpdateProfileRequest): Promise<ProfileResponse> {
+  return apiFetch<ProfileResponse>('/profile', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateInstitutionDetails(
+  payload: UpdateInstitutionDetailsRequest,
+): Promise<InstitutionDetails> {
+  return apiFetch<InstitutionDetails>('/profile/institution-details', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function changePassword(payload: ChangePasswordRequest): Promise<void> {
+  await apiFetch<void>('/profile/password', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Admin endpoints ────────────────────────────────────────────────────────────
+// Use a distinct admin_session cookie (set by the backend); credentials:'include'
+// in apiFetch carries it. Fully separate from the institution dpdp_session realm.
+
+export async function adminLogin(payload: { email: string; password: string }): Promise<AdminUser> {
+  return apiFetch<AdminUser>('/admin/login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function adminLogout(): Promise<void> {
+  return apiFetch<void>('/admin/logout', { method: 'POST' });
+}
+
+export async function adminMe(): Promise<AdminUser> {
+  return apiFetch<AdminUser>('/admin/me');
+}
+
+export async function adminListQuestions(
+  institutionCategory: InstitutionCategory,
+): Promise<AdminQuestion[]> {
+  return apiFetch<AdminQuestion[]>(`/admin/questions?institution_category=${institutionCategory}`);
+}
+
+export async function adminUpdateQuestion(
+  questionId: string,
+  payload: QuestionUpdate,
+): Promise<AdminQuestion> {
+  return apiFetch<AdminQuestion>(`/admin/questions/${questionId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function adminCreateQuestion(payload: QuestionCreate): Promise<AdminQuestion> {
+  return apiFetch<AdminQuestion>('/admin/questions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function adminListInstitutions(search?: string): Promise<AdminInstitution[]> {
+  const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+  return apiFetch<AdminInstitution[]>(`/admin/institutions${qs}`);
+}
+
+export async function adminVerifyField(
+  institutionId: string,
+  field: 'location' | 'student_count' | 'staff_count' | 'institution_subtype',
+): Promise<AdminInstitution> {
+  return apiFetch<AdminInstitution>(`/admin/institutions/${institutionId}/verify-field`, {
+    method: 'PATCH',
+    body: JSON.stringify({ field }),
+  });
 }
 
 // ── Assessment endpoints ───────────────────────────────────────────────────────

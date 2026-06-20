@@ -42,22 +42,22 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className="flex items-end gap-3 mb-4 px-4">
       {/* Avatar */}
-      <div className="w-8 h-8 bg-[#FFF3E0] rounded-full flex items-center justify-center shrink-0">
+      <div className="w-8 h-8 bg-[#FFF3E0] dark:bg-[#FF9933]/10 rounded-full flex items-center justify-center shrink-0">
         <span className="text-[#FF9933] text-xs font-bold select-none">M</span>
       </div>
 
       <div className="max-w-[75%]">
         <div
-          className="bg-[#FFF3E0] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm"
+          className="bg-[#FFF3E0] dark:bg-[#0F1A3E] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm"
           style={{ borderLeft: '3px solid #1A2756' }}
         >
           {message.input_type === 'voice' && (
-            <div className="flex items-center gap-1.5 mb-1.5 text-[#6B7280]">
+            <div className="flex items-center gap-1.5 mb-1.5 text-[#6B7280] dark:text-gray-400">
               <Mic size={12} />
               <span className="text-xs">Voice response</span>
             </div>
           )}
-          <div className="assistant-content text-sm text-[#111827] leading-relaxed">
+          <div className="assistant-content text-sm text-[#111827] dark:text-gray-200 leading-relaxed">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{

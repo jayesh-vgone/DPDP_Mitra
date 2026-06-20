@@ -50,11 +50,11 @@ export function RiskCard({ name, level, score, attemptId }: RiskCardProps) {
 
   const inner = (
     <div
-      className="bg-white rounded-2xl border border-gray-100 p-5 h-full transition-shadow hover:shadow-md"
+      className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-5 h-full transition-shadow hover:shadow-md"
       style={{ borderLeft: `3px solid ${borderColor}` }}
     >
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-[#0A0F2C]">{displayName}</p>
+        <p className="text-sm font-semibold text-[#0A0F2C] dark:text-gray-100">{displayName}</p>
         <div className="flex items-center gap-1.5">
           {icon}
           {href && <ChevronRight size={13} className="text-gray-400" />}
@@ -66,7 +66,7 @@ export function RiskCard({ name, level, score, attemptId }: RiskCardProps) {
       >
         {t(levelKey, lang)}
       </div>
-      <p className="text-xs text-[#6B7280] leading-relaxed">{t(descKey, lang)}</p>
+      <p className="text-xs text-[#6B7280] dark:text-gray-400 leading-relaxed">{t(descKey, lang)}</p>
       <p className="text-xs font-semibold mt-2" style={{ color: borderColor }}>
         {Math.round(score)}/100
       </p>

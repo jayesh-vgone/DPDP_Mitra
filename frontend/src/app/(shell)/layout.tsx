@@ -20,8 +20,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   // the authenticated shell before the redirect fires.
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#F9FAFB]">
-        <div className="flex items-center gap-3 text-[#0A0F2C]">
+      <div className="h-screen flex items-center justify-center bg-[#F9FAFB] dark:bg-[#0A0F2C]">
+        <div className="flex items-center gap-3 text-[#0A0F2C] dark:text-gray-100">
           <div className="w-5 h-5 rounded-full border-2 border-[#FF9933] border-t-transparent animate-spin" />
           <span className="text-sm font-medium">Loading...</span>
         </div>

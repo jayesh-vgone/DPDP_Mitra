@@ -69,6 +69,7 @@ function getOrCreateEntry(conversationId: string, lang: Language, title: string)
         user_id: MOCK_USER_ID,
         title,
         language: lang,
+        assessment_mode: false,
         created_at: now(),
       },
       messages: [],
@@ -105,7 +106,7 @@ export async function mockSendChat(req: ChatRequest): Promise<ChatResponse> {
 
   entry.messages.push(userMsg, assistantMsg);
 
-  return { conversation_id: convId, message: assistantMsg };
+  return { conversation_id: convId, message: assistantMsg, assessment_mode: false };
 }
 
 export async function mockSendVoice(req: VoiceRequest): Promise<VoiceResponse> {
@@ -139,7 +140,7 @@ export async function mockSendVoice(req: VoiceRequest): Promise<VoiceResponse> {
   entry.messages.push(userMsg, assistantMsg);
 
   // No audio_base64 returned — browser SpeechSynthesis fallback will be used
-  return { conversation_id: convId, transcript, message: assistantMsg };
+  return { conversation_id: convId, transcript, message: assistantMsg, assessment_mode: false };
 }
 
 export async function mockGetConversations(): Promise<Conversation[]> {

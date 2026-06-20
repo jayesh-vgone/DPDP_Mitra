@@ -10,6 +10,7 @@ interface ChatHook {
   messages: Message[];
   conversations: Conversation[];
   activeConversationId: string | null;
+  assessmentMode: boolean;
   isLoading: boolean;
   sendMessage: (text: string) => Promise<void>;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
@@ -25,14 +26,17 @@ export function useChat(): ChatHook {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [assessmentMode, setAssessmentMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const { lang } = useLanguage();
   const { playAudio, speakText } = useSpeech();
   const activeConvRef = useRef<string | null>(null);
   const messagesRef = useRef<Message[]>([]);
+  const conversationsRef = useRef<Conversation[]>([]);
   activeConvRef.current = activeConversationId;
   messagesRef.current = messages;
+  conversationsRef.current = conversations;
 
   useEffect(() => {
     getConversations().then(setConversations).catch(console.error);
@@ -76,6 +80,8 @@ export function useChat(): ChatHook {
         if (!activeConvRef.current) {
           setActiveConversationId(res.conversation_id);
         }
+
+        setAssessmentMode(res.assessment_mode);
 
         setMessages((prev) => {
           const without = prev.filter((m) => m.id !== optimisticId);
@@ -132,6 +138,8 @@ export function useChat(): ChatHook {
           setActiveConversationId(res.conversation_id);
         }
 
+        setAssessmentMode(res.assessment_mode);
+
         const userMsg: Message = {
           id: crypto.randomUUID(),
           conversation_id: res.conversation_id,
@@ -167,10 +175,15 @@ export function useChat(): ChatHook {
   const startNewConversation = useCallback(() => {
     setActiveConversationId(null);
     setMessages([]);
+    setAssessmentMode(false);
   }, []);
 
   const selectConversation = useCallback(async (id: string) => {
     setActiveConversationId(id);
+    // Restore assessment_mode from the already-loaded conversations list.
+    // conversationsRef avoids a stale closure without adding `conversations` to deps.
+    const conv = conversationsRef.current.find((c) => c.id === id);
+    setAssessmentMode(conv?.assessment_mode ?? false);
     setIsLoading(true);
     try {
       const msgs = await getMessages(id);
@@ -186,6 +199,7 @@ export function useChat(): ChatHook {
     messages,
     conversations,
     activeConversationId,
+    assessmentMode,
     isLoading,
     sendMessage,
     sendVoiceMessage,

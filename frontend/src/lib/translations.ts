@@ -52,6 +52,10 @@ const UI = {
   footerAct:        { en: 'DPDP Act 2023',                   hi: 'DPDP अधिनियम 2023' },
   footerDisclaimer: { en: 'General guidance only — not legal advice', hi: 'केवल सामान्य मार्गदर्शन — कानूनी सलाह नहीं' },
 
+  // Assessment mode badge
+  assessmentModeActive: { en: 'Assessment mode active', hi: 'असेसमेंट मोड सक्रिय' },
+  assessmentModeHint:   { en: 'Type /exit to turn off', hi: 'बंद करने के लिए /exit टाइप करें' },
+
   // Input bar
   inputPlaceholder: { en: 'Ask about the DPDP Act 2023...', hi: 'DPDP अधिनियम 2023 के बारे में पूछें...' },
   inputHint:        { en: 'Enter to send · Shift+Enter for new line', hi: 'भेजने के लिए Enter · नई लाइन के लिए Shift+Enter' },
@@ -93,6 +97,54 @@ const UI = {
 
   // Header / sidebar — auth controls
   logoutBtn:        { en: 'Sign out', hi: 'साइन आउट करें' },
+  profileLink:      { en: 'Profile',  hi: 'प्रोफ़ाइल' },
+
+  // Profile page
+  pageProfile:            { en: 'Profile',                    hi: 'प्रोफ़ाइल' },
+  profileAccountSection:  { en: 'Account Information',        hi: 'खाता जानकारी' },
+  profileNameLabel:       { en: 'Name',                       hi: 'नाम' },
+  profileEmailLabel:      { en: 'Email',                      hi: 'ईमेल' },
+  profileSaveBtn:         { en: 'Save Changes',               hi: 'बदलाव सहेजें' },
+  profileSaving:          { en: 'Saving…',                    hi: 'सहेजा जा रहा है…' },
+  profileSaved:           { en: 'Profile updated',            hi: 'प्रोफ़ाइल अपडेट हुई' },
+  profilePasswordSection: { en: 'Change Password',            hi: 'पासवर्ड बदलें' },
+  profileCurrentPw:       { en: 'Current Password',           hi: 'वर्तमान पासवर्ड' },
+  profileNewPw:           { en: 'New Password',               hi: 'नया पासवर्ड' },
+  profileConfirmPw:       { en: 'Confirm New Password',       hi: 'नया पासवर्ड दोबारा डालें' },
+  profileChangePwBtn:     { en: 'Change Password',            hi: 'पासवर्ड बदलें' },
+  profileChangingPw:      { en: 'Changing…',                  hi: 'बदला जा रहा है…' },
+  profilePwChanged:       { en: 'Password changed',           hi: 'पासवर्ड बदल गया' },
+  profilePwMismatch:      { en: 'New passwords do not match', hi: 'नए पासवर्ड मेल नहीं खाते' },
+  profileEmailInUse:      { en: 'Email already in use',       hi: 'ईमेल पहले से उपयोग में है' },
+  profilePwWrong:         { en: 'Current password is incorrect', hi: 'वर्तमान पासवर्ड गलत है' },
+  profileShowPw:          { en: 'Show',                       hi: 'दिखाएं' },
+  profileHidePw:          { en: 'Hide',                       hi: 'छुपाएं' },
+
+  // Theme toggle
+  themeToggleLight: { en: 'Switch to light mode', hi: 'लाइट मोड पर जाएं' },
+  themeToggleDark:  { en: 'Switch to dark mode',  hi: 'डार्क मोड पर जाएं' },
+
+  // Profile — Institution Details section
+  profileInstSection:        { en: 'Institution Details',      hi: 'संस्था विवरण' },
+  profileInstReadOnly:       { en: 'Institution Overview',     hi: 'संस्था अवलोकन' },
+  profileInstName:           { en: 'Institution Name',         hi: 'संस्था का नाम' },
+  profileInstType:           { en: 'Institution Type',         hi: 'संस्था प्रकार' },
+  profileInstCategory:       { en: 'Institution Category',     hi: 'संस्था श्रेणी' },
+  profileInstPlan:           { en: 'Plan',                     hi: 'योजना' },
+  profileInstLocation:       { en: 'Location',                 hi: 'स्थान' },
+  profileInstStudentCount:   { en: 'Student Count',            hi: 'छात्र संख्या' },
+  profileInstStaffCount:     { en: 'Staff Count',              hi: 'कर्मचारी संख्या' },
+  profileInstSubtype:        { en: 'Institution Subtype',      hi: 'संस्था उपप्रकार' },
+  profileInstSubtypeNA:      { en: 'Not applicable for EdTech', hi: 'EdTech के लिए लागू नहीं' },
+  profileInstSaveBtn:        { en: 'Save Institution Details', hi: 'संस्था विवरण सहेजें' },
+  profileInstSaving:         { en: 'Saving…',                  hi: 'सहेजा जा रहा है…' },
+  profileInstSaved:          { en: 'Institution details saved', hi: 'संस्था विवरण सहेजे गए' },
+  profileInstSubtypePrompt:  { en: 'Select subtype',           hi: 'उपप्रकार चुनें' },
+  profileInstLocationPrompt: { en: 'City, State',              hi: 'शहर, राज्य' },
+
+  // Verification badges
+  badgePendingVerification: { en: 'Pending Verification', hi: 'सत्यापन प्रतीक्षित' },
+  badgeVerified:            { en: 'Verified',             hi: 'सत्यापित' },
 
   // Register — institution category dropdown (Phase 6b)
   categoryDropdownLabel: { en: 'What best describes your institution?', hi: 'आपकी संस्था सबसे अच्छे तरीके से क्या है?' },

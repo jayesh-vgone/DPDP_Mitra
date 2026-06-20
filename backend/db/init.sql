@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     user_id TEXT NOT NULL REFERENCES users(id),
     title TEXT,
     language TEXT NOT NULL DEFAULT 'en',
+    assessment_mode BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
@@ -86,7 +87,11 @@ CREATE TABLE IF NOT EXISTS assessment_questions (
     order_index          INTEGER NOT NULL,
     answer_type          TEXT NOT NULL DEFAULT 'scale'
                              CHECK (answer_type IN ('scale', 'boolean')),
-    created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    -- is_active lets the admin panel deactivate a question (hide from new
+    -- assessments) without deleting it — historical answers keep their FK.
+    is_active            BOOLEAN NOT NULL DEFAULT true,
+    created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 -- One row per full submission. Stores denormalized scores so history is a
@@ -102,13 +107,39 @@ CREATE TABLE IF NOT EXISTS assessment_attempts (
 
 -- One row per answer inside an attempt. Linked to attempt_id, NOT institution_id,
 -- so answers from different submissions stay separated.
+-- question_text/dpdp_section/weight/answer_type are a SNAPSHOT taken at submission
+-- time: once an admin edits a question, past attempts must NOT change. The score
+-- is already frozen in assessment_attempts; these columns freeze the drill-down
+-- display source too.
 CREATE TABLE IF NOT EXISTS assessment_responses (
-    id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    attempt_id   UUID NOT NULL REFERENCES assessment_attempts(id) ON DELETE CASCADE,
-    question_id  UUID NOT NULL REFERENCES assessment_questions(id),
-    answer_value NUMERIC NOT NULL,
-    created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    attempt_id    UUID NOT NULL REFERENCES assessment_attempts(id) ON DELETE CASCADE,
+    question_id   UUID NOT NULL REFERENCES assessment_questions(id),
+    answer_value  NUMERIC NOT NULL,
+    question_text TEXT,
+    dpdp_section  TEXT,
+    weight        NUMERIC,
+    answer_type   TEXT,
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_attempts_institution_time
     ON assessment_attempts(institution_id, created_at DESC);
+
+-- ── Admin panel (separate auth realm from institution users) ────────────────────
+-- admin_users are provisioned manually (seed_admin.py); no public signup.
+-- admin_sessions mirror `sessions` but with a distinct cookie so an institution
+-- user and an admin can be logged in at the same time in one browser.
+CREATE TABLE IF NOT EXISTS admin_users (
+    id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email         TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS admin_sessions (
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id    UUID NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    expires_at  TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);

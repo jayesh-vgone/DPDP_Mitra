@@ -62,9 +62,9 @@ export function ScoreTrend({ history }: { history: AttemptOut[] }) {
       : null;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col">
+    <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-6 flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-[#0A0F2C] text-base">{t('dashboardTrendTitle', lang)}</h3>
+        <h3 className="font-semibold text-[#0A0F2C] dark:text-gray-100 text-base">{t('dashboardTrendTitle', lang)}</h3>
         {delta !== null && (
           <div className="flex items-center gap-1 text-sm font-semibold" style={{ color: delta >= 0 ? '#138808' : '#DC2626' }}>
             <ArrowUpRight size={16} />
@@ -91,12 +91,12 @@ export function ScoreTrend({ history }: { history: AttemptOut[] }) {
             <line
               x1={PAD.left} y1={yAt(tick)}
               x2={W - PAD.right} y2={yAt(tick)}
-              stroke="#F3F4F6" strokeWidth="1"
+              stroke="var(--chart-grid)" strokeWidth="1"
             />
             <text
               x={PAD.left - 6} y={yAt(tick)}
               textAnchor="end" dominantBaseline="middle"
-              fontSize="12" fill="#9CA3AF"
+              fontSize="12" fill="var(--chart-label)"
             >
               {tick}
             </text>
@@ -119,7 +119,7 @@ export function ScoreTrend({ history }: { history: AttemptOut[] }) {
         {pts.map((p, i) => (
           <circle
             key={i} cx={p.x} cy={p.y} r="3.5"
-            fill="white" stroke="#FF9933" strokeWidth="2"
+            fill="var(--chart-dot-bg)" stroke="#FF9933" strokeWidth="2"
           />
         ))}
 
@@ -127,7 +127,7 @@ export function ScoreTrend({ history }: { history: AttemptOut[] }) {
         {pts.map((p, i) => (
           <text
             key={i} x={p.x} y={H - 4}
-            textAnchor="middle" fontSize="11" fill="#9CA3AF"
+            textAnchor="middle" fontSize="11" fill="var(--chart-label)"
           >
             {p.label}
           </text>

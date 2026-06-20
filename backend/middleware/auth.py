@@ -6,8 +6,10 @@ from jose import jwt, JWTError
 from config import settings
 
 SKIP_PATHS = {"/health"}
-# /auth/* routes use their own session-cookie mechanism and must not require a JWT.
-SKIP_PREFIXES = ("/auth/",)
+# /auth/* and /admin/* routes use their own session-cookie mechanisms and must
+# not require a JWT (admin has a fully separate session realm — see
+# middleware/admin_session.py).
+SKIP_PREFIXES = ("/auth/", "/admin/")
 
 
 class AuthMiddleware(BaseHTTPMiddleware):

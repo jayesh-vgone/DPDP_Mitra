@@ -14,6 +14,22 @@
   --grey-400: #9CA3AF;
   --text-primary: #111827;
   --text-secondary: #6B7280;
+
+  /* SVG chart colors (light mode) */
+  --chart-grid: #F3F4F6;
+  --chart-label: #9CA3AF;
+  --chart-dot-bg: #FFFFFF;
+  --chart-track: #E5E7EB;
+  --score-center-text: #0A0F2C;
+}
+
+.dark {
+  /* SVG chart colors (dark mode) */
+  --chart-grid: #1A2756;
+  --chart-label: #6B7280;
+  --chart-dot-bg: #0F1A3E;
+  --chart-track: #1A2756;
+  --score-center-text: #F3F4F6;
 }
 
 html,

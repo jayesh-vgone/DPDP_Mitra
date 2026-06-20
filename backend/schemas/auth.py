@@ -51,6 +51,12 @@ class InstitutionOut(BaseModel):
     invite_code: str
     plan: str
     category: str = "school"  # added Phase 6a
+    # institution_subtype + verification flags — added post-Phase 8
+    institution_subtype: Optional[str] = None
+    student_count_verified: bool = False
+    staff_count_verified: bool = False
+    institution_subtype_verified: bool = False
+    location_verified: bool = False
 
 
 class AuthResponse(BaseModel):

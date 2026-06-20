@@ -56,9 +56,9 @@ export function InputBar({ onSend, onVoice, isLoading }: InputBarProps) {
   const hint = t('inputHint', lang);
 
   return (
-    <div className="bg-white border-t border-[#1A2756] px-4 py-3 shrink-0">
+    <div className="bg-white dark:bg-[#0F1A3E] border-t border-[#1A2756] px-4 py-3 shrink-0">
       <div
-        className={`flex items-end gap-3 bg-[#F9FAFB] border rounded-2xl px-4 py-3 transition-all ${
+        className={`flex items-end gap-3 bg-[#F9FAFB] dark:bg-[#0A0F2C] border rounded-2xl px-4 py-3 transition-all ${
           isRecording
             ? 'border-red-300 ring-2 ring-red-100'
             : 'border-[#1A2756] focus-within:border-[#FF9933] focus-within:ring-2 focus-within:ring-[#FF9933]/20'
@@ -72,7 +72,7 @@ export function InputBar({ onSend, onVoice, isLoading }: InputBarProps) {
           placeholder={isRecording ? t('recordingLabel', lang) : placeholder}
           disabled={isLoading || isRecording}
           rows={1}
-          className="flex-1 bg-transparent resize-none text-sm text-[#111827] placeholder:text-[#9CA3AF] outline-none min-h-[24px] max-h-[120px] leading-6 disabled:opacity-60"
+          className="flex-1 bg-transparent resize-none text-sm text-[#111827] dark:text-gray-100 placeholder:text-[#9CA3AF] outline-none min-h-[24px] max-h-[120px] leading-6 disabled:opacity-60"
         />
 
         <div className="flex items-center gap-2 shrink-0">

@@ -11,12 +11,16 @@ from providers.tts.factory import get_tts_provider
 from prompts import build_system_prompt
 from retrieval import retrieve_chunks
 from guardrails import check_injection, check_output_scope
-from intent import is_score_query
 from db.pool import get_pool
 from db import queries
 from middleware.session import get_session_user
 
 router = APIRouter()
+
+_NO_ASSESS_EN = ("You haven't completed an assessment yet, so I don't have any scores to "
+                 "reference. Complete the assessment from your dashboard first.")
+_NO_ASSESS_HI = ("आपने अभी तक कोई मूल्यांकन पूरा नहीं किया है, इसलिए मेरे पास कोई "
+                 "स्कोर नहीं है। कृपया पहले अपने डैशबोर्ड से मूल्यांकन पूरा करें।")
 
 
 def _make_message(msg_id: str, content: str, conv_id: str, lang: str, input_type: str = "voice") -> MessageOut:
@@ -47,6 +51,11 @@ async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
     transcript = await stt.transcribe(audio_bytes, req.audio_format, req.lang)
     print(f"[VOICE DIAG] STT transcript: {repr(transcript)}")
 
+    # ── Read current assessment_mode before any early-return paths ────────────
+    current_mode = False
+    if req.conversation_id:
+        current_mode = await queries.get_assessment_mode(pool, req.conversation_id)
+
     # ── Layer 1: input-level injection guard (on the transcript) ─────────────
     injection_refusal = check_injection(transcript, req.lang)
     if injection_refusal:
@@ -63,6 +72,7 @@ async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
             transcript=transcript,
             message=_make_message(msg_id, injection_refusal, conv_id, req.lang),
             audio_base64=audio_b64,
+            assessment_mode=current_mode,
         )
 
     # ── History: DB is authoritative when conversation exists ─────────────────
@@ -75,17 +85,33 @@ async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
     if chunks:
         print(f"[rag] {len(chunks)} chunks retrieved: {[c['section'] for c in chunks]}")
 
-    # ── Score-context injection ────────────────────────────────────────────────
+    # ── Assessment context: injected only when mode is explicitly ON ──────────
     assessment_ctx = None
-    if is_score_query(transcript):
+    if current_mode:
         user_rec = await queries.get_user_by_id(pool, user_id)
         if user_rec and user_rec.get("institution_id"):
             assessment_ctx = await queries.get_latest_assessment_for_institution(
                 pool, user_rec["institution_id"]
             )
-            if assessment_ctx:
-                print(f"[intent] score query detected — injecting assessment context "
-                      f"(overall={assessment_ctx['overall_score']:.0f})")
+
+        if assessment_ctx:
+            print(f"[assessment_mode] injecting context (overall={assessment_ctx['overall_score']:.0f})")
+        else:
+            no_assess = _NO_ASSESS_HI if req.lang == "hi" else _NO_ASSESS_EN
+            conv_id = req.conversation_id
+            if not conv_id:
+                conv_id = await queries.create_conversation(pool, user_id, transcript, req.lang)
+            await queries.insert_message(pool, conv_id, "user", transcript, "voice", req.lang)
+            msg_id = await queries.insert_message(pool, conv_id, "assistant", no_assess, "text", req.lang)
+            tts_bytes = await tts.synthesize(no_assess, req.lang)
+            audio_b64 = base64.b64encode(tts_bytes).decode() if tts_bytes else None
+            return VoiceResponse(
+                conversation_id=conv_id,
+                transcript=transcript,
+                message=_make_message(msg_id, no_assess, conv_id, req.lang),
+                audio_base64=audio_b64,
+                assessment_mode=True,
+            )
 
     # ── Layer 2: hardened system prompt (anti-injection prefix in prompts.py) ─
     system_prompt = build_system_prompt(req.lang, chunks, assessment=assessment_ctx)
@@ -108,7 +134,6 @@ async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
     if not conv_id:
         conv_id = await queries.create_conversation(pool, user_id, transcript, req.lang)
 
-    # input_type = "voice" for the user message, "text" for the assistant reply
     await queries.insert_message(pool, conv_id, "user", transcript, "voice", req.lang)
     msg_id = await queries.insert_message(pool, conv_id, "assistant", reply, "text", req.lang)
 
@@ -117,4 +142,5 @@ async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
         transcript=transcript,
         message=_make_message(msg_id, reply, conv_id, req.lang),
         audio_base64=audio_b64,
+        assessment_mode=current_mode,
     )

@@ -147,7 +147,19 @@ async def submit_assessment(
     await queries.create_assessment_responses(
         pool,
         attempt_id=attempt_id,
-        responses=[{"question_id": r.question_id, "answer_value": r.answer_value} for r in req.responses],
+        # Snapshot the question as it is right now, so a later admin edit never
+        # rewrites this historical attempt's stored question text/weight/section.
+        responses=[
+            {
+                "question_id": r.question_id,
+                "answer_value": r.answer_value,
+                "question_text": question_map[r.question_id]["question_text"],
+                "dpdp_section": question_map[r.question_id]["dpdp_section"],
+                "weight": question_map[r.question_id]["weight"],
+                "answer_type": question_map[r.question_id]["answer_type"],
+            }
+            for r in req.responses
+        ],
     )
 
     return SubmitResponse(

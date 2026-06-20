@@ -66,7 +66,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#0A0F2C] flex flex-col items-center justify-center px-4 py-8">
       {/* Language toggle — top right */}
       <div className="absolute top-4 right-6">
         <LanguageToggle />
@@ -78,14 +78,14 @@ export default function RegisterPage() {
           <div className="bg-[#FF9933] p-3 rounded-2xl mb-4 shadow-md">
             <Shield size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-[#0A0F2C]">EduPrivacy AI</h1>
+          <h1 className="text-2xl font-bold text-[#0A0F2C] dark:text-gray-100">EduPrivacy AI</h1>
           <p className="text-sm text-[#FF9933] font-medium mt-1">DPDP Copilot</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-bold text-[#0A0F2C] mb-1">{t('registerTitle', lang)}</h2>
-          <p className="text-sm text-gray-500 mb-6">{t('registerSubtitle', lang)}</p>
+        <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1A2756] p-8">
+          <h2 className="text-xl font-bold text-[#0A0F2C] dark:text-gray-100 mb-1">{t('registerTitle', lang)}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t('registerSubtitle', lang)}</p>
 
           {error && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
@@ -96,7 +96,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Invite code */}
             <div>
-              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+              <label className="block text-sm font-medium text-[#0A0F2C] dark:text-gray-200 mb-1.5">
                 {t('inviteCodeLabel', lang)}
               </label>
               <input
@@ -104,21 +104,21 @@ export default function RegisterPage() {
                 required
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition font-mono tracking-wider"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] bg-white dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition font-mono tracking-wider"
                 placeholder="SUNRISE-2024"
               />
             </div>
 
             {/* Institution category */}
             <div>
-              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+              <label className="block text-sm font-medium text-[#0A0F2C] dark:text-gray-200 mb-1.5">
                 {t('categoryDropdownLabel', lang)}
               </label>
               <select
                 required
                 value={category}
                 onChange={(e) => setCategory(e.target.value as typeof category)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] text-sm bg-white dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
               >
                 {CATEGORY_OPTIONS.map(({ value, labelKey }) => (
                   <option key={value} value={value}>{t(labelKey, lang)}</option>
@@ -128,7 +128,7 @@ export default function RegisterPage() {
 
             {/* Admin name */}
             <div>
-              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+              <label className="block text-sm font-medium text-[#0A0F2C] dark:text-gray-200 mb-1.5">
                 {t('adminNameLabel', lang)}
               </label>
               <input
@@ -136,14 +136,14 @@ export default function RegisterPage() {
                 required
                 value={adminName}
                 onChange={(e) => setAdminName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] bg-white dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
                 placeholder="Priya Sharma"
               />
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+              <label className="block text-sm font-medium text-[#0A0F2C] dark:text-gray-200 mb-1.5">
                 {t('emailLabel', lang)}
               </label>
               <input
@@ -151,14 +151,14 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] bg-white dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
                 placeholder="you@school.edu.in"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-[#0A0F2C] mb-1.5">
+              <label className="block text-sm font-medium text-[#0A0F2C] dark:text-gray-200 mb-1.5">
                 {t('passwordLabel', lang)}
               </label>
               <input
@@ -167,7 +167,7 @@ export default function RegisterPage() {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] bg-white dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
                 placeholder="••••••••"
               />
               <p className="text-xs text-gray-400 mt-1">Minimum 8 characters</p>
@@ -183,7 +183,7 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
             {t('haveAccount', lang)}{' '}
             <Link href="/login" className="text-[#FF9933] font-medium hover:underline">
               {t('loginLink', lang)}

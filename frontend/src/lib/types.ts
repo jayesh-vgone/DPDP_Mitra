@@ -24,6 +24,11 @@ export interface AuthInstitution {
   invite_code: string;
   plan: string;
   category: 'school' | 'higher_ed' | 'edtech';
+  institution_subtype: string | null;
+  student_count_verified: boolean;
+  staff_count_verified: boolean;
+  institution_subtype_verified: boolean;
+  location_verified: boolean;
 }
 
 export interface AuthResponse {
@@ -46,6 +51,7 @@ export interface Conversation {
   user_id: string;
   title: string;
   language: Language;
+  assessment_mode: boolean;
   created_at: string;
 }
 
@@ -65,6 +71,7 @@ export interface ChatResponse {
   conversation_id: string;
   message: Message;
   audio_base64?: string;
+  assessment_mode: boolean;
 }
 
 export interface VoiceRequest {
@@ -80,6 +87,101 @@ export interface VoiceResponse {
   transcript: string;
   message: Message;
   audio_base64?: string;
+  assessment_mode: boolean;
+}
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+
+export interface InstitutionDetails {
+  name: string;
+  type: string;
+  category: 'school' | 'higher_ed' | 'edtech';
+  plan: string;
+  board: string | null;
+  location: string | null;
+  student_count: number | null;
+  staff_count: number | null;
+  institution_subtype: string | null;
+  location_verified: boolean;
+  student_count_verified: boolean;
+  staff_count_verified: boolean;
+  institution_subtype_verified: boolean;
+}
+
+export interface ProfileResponse {
+  name: string | null;
+  email: string | null;
+  institution?: InstitutionDetails | null;
+}
+
+export interface UpdateProfileRequest {
+  name?: string;
+  email?: string;
+}
+
+export interface UpdateInstitutionDetailsRequest {
+  location?: string | null;
+  student_count?: number | null;
+  staff_count?: number | null;
+  institution_subtype?: string | null;
+}
+
+export interface ChangePasswordRequest {
+  old_password: string;
+  new_password: string;
+}
+
+// ── Admin panel ─────────────────────────────────────────────────────────────
+
+export type InstitutionCategory = 'school' | 'higher_ed' | 'edtech';
+
+export interface AdminInstitution {
+  id: string;
+  name: string;
+  category: InstitutionCategory;
+  location: string | null;
+  student_count: number | null;
+  staff_count: number | null;
+  institution_subtype: string | null;
+  location_verified: boolean;
+  student_count_verified: boolean;
+  staff_count_verified: boolean;
+  institution_subtype_verified: boolean;
+  pending_count: number;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+}
+
+export interface AdminQuestion {
+  id: string;
+  institution_category: InstitutionCategory;
+  category: string;
+  question_text: string;
+  dpdp_section: string | null;
+  weight: number;
+  order_index: number;
+  answer_type: 'scale' | 'boolean';
+  is_active: boolean;
+}
+
+export interface QuestionUpdate {
+  question_text?: string;
+  dpdp_section?: string | null;
+  weight?: number;
+  answer_type?: 'scale' | 'boolean';
+  is_active?: boolean;
+}
+
+export interface QuestionCreate {
+  institution_category: InstitutionCategory;
+  category: string;
+  question_text: string;
+  dpdp_section?: string | null;
+  weight: number;
+  answer_type: 'scale' | 'boolean';
 }
 
 // ── Assessment ────────────────────────────────────────────────────────────────
