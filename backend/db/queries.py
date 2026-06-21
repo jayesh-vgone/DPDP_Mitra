@@ -800,6 +800,194 @@ async def get_assessment_scores(
     return {"latest": history[0], "history": history}
 
 
+# ── Action items (Dashboard remediation tracker / Action Queue) ──────────────────
+
+def _action_item_to_dict(row) -> dict:
+    return {
+        "id": str(row["id"]),
+        "institution_id": str(row["institution_id"]),
+        "category": row["category"],
+        "task_text": row["task_text"],
+        "priority": row["priority"],
+        "priority_level": row["priority_level"],
+        "effort_estimate": row["effort_estimate"],
+        "status": row["status"],
+        "is_custom": bool(row["is_custom"]),
+        "created_at": row["created_at"].isoformat(),
+        "updated_at": row["updated_at"].isoformat(),
+    }
+
+
+# ── Sort key for the Action Queue: P1, P2, ... in numeric order. Items whose
+# priority does not parse fall to the end. Used by both list and SQL ORDER BY.
+def _priority_order_sql() -> str:
+    # NULLIF + regexp keeps non-'P<n>' values from crashing the cast.
+    return (
+        "CAST(NULLIF(regexp_replace(priority, '\\D', '', 'g'), '') AS INTEGER) "
+        "NULLS LAST, created_at ASC"
+    )
+
+
+async def list_action_items(pool: asyncpg.Pool, institution_id: str) -> list[dict]:
+    """Return all action items (auto + custom) for an institution, ordered by priority."""
+    rows = await pool.fetch(
+        f"""
+        SELECT id, institution_id, category, task_text, priority, priority_level,
+               effort_estimate, status, is_custom, created_at, updated_at
+        FROM action_items
+        WHERE institution_id = $1::uuid
+        ORDER BY {_priority_order_sql()}
+        """,
+        institution_id,
+    )
+    return [_action_item_to_dict(r) for r in rows]
+
+
+async def regenerate_auto_action_items(
+    pool: asyncpg.Pool,
+    institution_id: str,
+    items: list[dict],
+    # [{category, task_text, priority, priority_level, effort_estimate}, ...]
+) -> None:
+    """
+    Replace the institution's AUTO-generated action items in one transaction.
+
+    DELETEs every is_custom=false row for the institution, then bulk-inserts the
+    freshly generated set. Custom items (is_custom=true) are never touched — this is
+    the locked hybrid-model behaviour. Called inside POST /assessment/submit.
+    """
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                "DELETE FROM action_items WHERE institution_id = $1::uuid AND is_custom = false",
+                institution_id,
+            )
+            if items:
+                await conn.executemany(
+                    """
+                    INSERT INTO action_items
+                        (institution_id, category, task_text, priority, priority_level,
+                         effort_estimate, status, is_custom)
+                    VALUES ($1::uuid, $2, $3, $4, $5, $6, 'not_started', false)
+                    """,
+                    [
+                        (
+                            institution_id,
+                            it["category"],
+                            it["task_text"],
+                            it["priority"],
+                            it["priority_level"],
+                            it.get("effort_estimate"),
+                        )
+                        for it in items
+                    ],
+                )
+
+
+async def create_custom_action_item(
+    pool: asyncpg.Pool,
+    institution_id: str,
+    category: str,
+    task_text: str,
+    priority_level: str,
+    effort_estimate: Optional[str] = None,
+) -> dict:
+    """
+    Insert a user-added (custom) action item. priority is auto-assigned as
+    P(max existing number + 1) so it appends after the current queue.
+    """
+    max_num = await pool.fetchval(
+        """
+        SELECT COALESCE(MAX(CAST(NULLIF(regexp_replace(priority, '\\D', '', 'g'), '') AS INTEGER)), 0)
+        FROM action_items
+        WHERE institution_id = $1::uuid
+        """,
+        institution_id,
+    )
+    priority = f"P{int(max_num) + 1}"
+    row = await pool.fetchrow(
+        """
+        INSERT INTO action_items
+            (institution_id, category, task_text, priority, priority_level,
+             effort_estimate, status, is_custom)
+        VALUES ($1::uuid, $2, $3, $4, $5, $6, 'not_started', true)
+        RETURNING id, institution_id, category, task_text, priority, priority_level,
+                  effort_estimate, status, is_custom, created_at, updated_at
+        """,
+        institution_id, category, task_text, priority, priority_level, effort_estimate,
+    )
+    return _action_item_to_dict(row)
+
+
+async def update_action_item(
+    pool: asyncpg.Pool,
+    item_id: str,
+    institution_id: str,
+    updates: dict,
+) -> Optional[dict]:
+    """
+    Partial-update an action item (auto OR custom — both are user-editable).
+    Scoped to institution_id so one institution can't edit another's items.
+    `updates` keys must be a subset of: task_text, category, effort_estimate,
+    priority_level, status. Returns the updated row, or None if not found.
+    Always bumps updated_at.
+    """
+    if not updates:
+        return await get_action_item(pool, item_id, institution_id)
+
+    cols = list(updates.keys())
+    set_clause = ", ".join(f"{c} = ${i + 1}" for i, c in enumerate(cols))
+    vals = [updates[c] for c in cols]
+    vals.append(item_id)
+    vals.append(institution_id)
+    try:
+        row = await pool.fetchrow(
+            f"""
+            UPDATE action_items
+            SET {set_clause}, updated_at = now()
+            WHERE id = ${len(cols) + 1}::uuid AND institution_id = ${len(cols) + 2}::uuid
+            RETURNING id, institution_id, category, task_text, priority, priority_level,
+                      effort_estimate, status, is_custom, created_at, updated_at
+            """,
+            *vals,
+        )
+    except asyncpg.DataError:
+        return None
+    return None if row is None else _action_item_to_dict(row)
+
+
+async def get_action_item(
+    pool: asyncpg.Pool, item_id: str, institution_id: str
+) -> Optional[dict]:
+    try:
+        row = await pool.fetchrow(
+            """
+            SELECT id, institution_id, category, task_text, priority, priority_level,
+                   effort_estimate, status, is_custom, created_at, updated_at
+            FROM action_items
+            WHERE id = $1::uuid AND institution_id = $2::uuid
+            """,
+            item_id, institution_id,
+        )
+    except asyncpg.DataError:
+        return None
+    return None if row is None else _action_item_to_dict(row)
+
+
+async def delete_action_item(
+    pool: asyncpg.Pool, item_id: str, institution_id: str
+) -> bool:
+    """Delete an action item (auto or custom), scoped to institution. Returns True if a row was removed."""
+    try:
+        result = await pool.execute(
+            "DELETE FROM action_items WHERE id = $1::uuid AND institution_id = $2::uuid",
+            item_id, institution_id,
+        )
+    except asyncpg.DataError:
+        return False
+    return result.split()[-1] != "0"
+
+
 # ── Admin users & sessions (separate realm from institution auth) ────────────────
 
 ADMIN_SESSION_TTL_DAYS = 7

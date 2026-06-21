@@ -10,6 +10,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Semantic theme tokens — backed by CSS custom properties in globals.css,
+        // so they switch automatically between light and dark. Prefer these over
+        // hardcoded hexes everywhere in the institution-facing app.
+        app: 'var(--app-bg)',
+        sidebar: 'var(--sidebar-bg)',
+        surface: {
+          DEFAULT: 'var(--surface)',
+          2: 'var(--surface-2)',
+        },
+        line: 'var(--border)',
+        ink: 'var(--text-primary)',
+        muted: 'var(--text-secondary)',
+        accent: {
+          DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          violet: 'var(--accent-violet)',
+          soft: 'var(--accent-soft)',
+          on: 'var(--accent-on)',
+        },
+        risk: {
+          high: 'var(--risk-high)',
+          med: 'var(--risk-med)',
+          low: 'var(--risk-low)',
+        },
         brand: {
           navy: '#0f2447',
           'navy-mid': '#1a3a6e',

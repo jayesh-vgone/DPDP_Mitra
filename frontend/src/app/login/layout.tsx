@@ -17,7 +17,7 @@ export default function LoginLayout({ children }: { children: React.ReactNode })
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-[#F9FAFB]">
-        <div className="w-5 h-5 rounded-full border-2 border-[#FF9933] border-t-transparent animate-spin" />
+        <div className="w-5 h-5 rounded-full border-2 border-[#4F46E5] border-t-transparent animate-spin" />
       </div>
     );
   }

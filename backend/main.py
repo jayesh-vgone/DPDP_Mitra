@@ -5,7 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from middleware.auth import AuthMiddleware
-from routers import health, chat, voice, conversations, auth, assessment, profile, admin
+from routers import (
+    health, chat, voice, conversations, auth, assessment, profile, admin, action_items,
+)
 
 
 @asynccontextmanager
@@ -54,3 +56,4 @@ app.include_router(conversations.router)
 app.include_router(assessment.router)
 app.include_router(profile.router)
 app.include_router(admin.router)
+app.include_router(action_items.router)

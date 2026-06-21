@@ -2,34 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  ──────────────────────────────────────────────────────────────────────────
+  EduPrivacy AI — Indigo / Light theme (supersedes the original saffron/navy
+  palette, see CLAUDE.md). Colours are exposed as CSS custom properties so the
+  semantic Tailwind tokens (bg-app, bg-surface, text-ink, bg-accent, …) switch
+  automatically between light and dark — components rarely need `dark:` variants.
+  ──────────────────────────────────────────────────────────────────────────
+*/
+
 :root {
-  --navy-950: #0A0F2C;
-  --navy-900: #0F1A3E;
-  --navy-800: #1A2756;
-  --navy-700: #243570;
-  --saffron-500: #FF9933;
-  --saffron-400: #FFB366;
-  --saffron-100: #FFF3E0;
-  --grey-50: #F9FAFB;
-  --grey-400: #9CA3AF;
-  --text-primary: #111827;
+  /* Surfaces */
+  --app-bg: #F6F6FB;        /* cream/off-white main background */
+  --sidebar-bg: #FFFFFF;    /* light sidebar */
+  --surface: #FFFFFF;       /* cards, header, panels */
+  --surface-2: #F4F4FA;     /* subtle inset / hover surface */
+  --border: #E7E7F0;        /* borders, dividers */
+
+  /* Text */
+  --text-primary: #1B1830;  /* indigo-ink headings */
   --text-secondary: #6B7280;
 
-  /* SVG chart colors (light mode) */
-  --chart-grid: #F3F4F6;
+  /* Accent — indigo / violet */
+  --accent: #4F46E5;        /* indigo-600 — primary buttons, active nav, links */
+  --accent-hover: #4338CA;  /* indigo-700 */
+  --accent-violet: #7C3AED; /* violet-600 — gradient partner */
+  --accent-soft: #EEEDFB;   /* light indigo tint — active-nav bg, soft badges */
+  --accent-on: #FFFFFF;
+
+  /* Semantic risk colours (shared light/dark) */
+  --risk-high: #DC2626;
+  --risk-med: #F59E0B;
+  --risk-low: #16A34A;
+
+  /* SVG chart colours (light mode) */
+  --chart-grid: #ECECF4;
   --chart-label: #9CA3AF;
   --chart-dot-bg: #FFFFFF;
-  --chart-track: #E5E7EB;
-  --score-center-text: #0A0F2C;
+  --chart-track: #ECEBF6;
+  --score-center-text: #1B1830;
 }
 
 .dark {
-  /* SVG chart colors (dark mode) */
-  --chart-grid: #1A2756;
-  --chart-label: #6B7280;
-  --chart-dot-bg: #0F1A3E;
-  --chart-track: #1A2756;
-  --score-center-text: #F3F4F6;
+  --app-bg: #0E0D1A;
+  --sidebar-bg: #15131F;
+  --surface: #1A1828;
+  --surface-2: #221F33;
+  --border: #2B2740;
+
+  --text-primary: #ECEAF7;
+  --text-secondary: #9A95B5;
+
+  --accent: #6366F1;        /* indigo-500 — a touch brighter on dark */
+  --accent-hover: #818CF8;
+  --accent-violet: #8B5CF6;
+  --accent-soft: #221F38;
+  --accent-on: #FFFFFF;
+
+  /* SVG chart colours (dark mode) */
+  --chart-grid: #2B2740;
+  --chart-label: #6B6786;
+  --chart-dot-bg: #1A1828;
+  --chart-track: #2B2740;
+  --score-center-text: #ECEAF7;
 }
 
 html,
@@ -46,11 +81,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1A2756;
+  background: var(--border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #243570;
+  background: var(--accent);
 }
 
 /* Markdown output inside assistant bubbles */

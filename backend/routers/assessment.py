@@ -31,6 +31,7 @@ from scoring import (
     compute_scores, score_label, ResponseItem,
     CATEGORY_SLUGS, get_category_explanation,
 )
+from action_items import generate_action_items
 
 router = APIRouter(prefix="/assessment", tags=["assessment"])
 
@@ -160,6 +161,16 @@ async def submit_assessment(
             }
             for r in req.responses
         ],
+    )
+
+    # Regenerate the Action Queue: replace this institution's AUTO-generated items
+    # (custom items are left untouched) with a fresh deterministic set derived from
+    # the new attempt's category scores. Rule-based — no LLM call.
+    generated = generate_action_items(result["category_scores"])
+    await queries.regenerate_auto_action_items(
+        pool,
+        institution_id=institution["id"],
+        items=generated,
     )
 
     return SubmitResponse(

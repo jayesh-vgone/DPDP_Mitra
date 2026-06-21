@@ -240,3 +240,37 @@ export interface CategoryDetailOut {
   explanation: string;
   questions: CategoryQuestionOut[];
 }
+
+// ── Action Queue (remediation tracker) ──────────────────────────────────────
+
+export type ActionStatus = 'not_started' | 'in_progress' | 'done';
+export type ActionPriorityLevel = 'HIGH' | 'MED';
+
+export interface ActionItem {
+  id: string;
+  institution_id: string;
+  category: string;
+  task_text: string;
+  priority: string;
+  priority_level: string;
+  effort_estimate: string | null;
+  status: ActionStatus;
+  is_custom: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateActionItemRequest {
+  category: string;
+  task_text: string;
+  effort_estimate?: string | null;
+  priority_level: ActionPriorityLevel;
+}
+
+export interface UpdateActionItemRequest {
+  task_text?: string;
+  category?: string;
+  effort_estimate?: string | null;
+  priority_level?: ActionPriorityLevel;
+  status?: ActionStatus;
+}

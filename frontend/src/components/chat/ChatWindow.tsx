@@ -24,11 +24,11 @@ function EmptyState({ onSend }: { onSend: (text: string) => void }) {
 
   return (
     <div className="flex flex-col items-center justify-center h-full text-center px-8 select-none">
-      <div className="w-20 h-20 bg-[#FFF3E0] dark:bg-[#FF9933]/10 rounded-2xl flex items-center justify-center mb-6">
-        <Scale size={40} className="text-[#FF9933]" />
+      <div className="w-20 h-20 bg-[#EEEDFB] dark:bg-[#4F46E5]/10 rounded-2xl flex items-center justify-center mb-6">
+        <Scale size={40} className="text-[#4F46E5]" />
       </div>
       <h2 className="text-[#111827] dark:text-gray-100 font-bold text-4xl mb-3">{t('chatTitle', lang)}</h2>
-      <div className="w-10 h-px bg-[#1A2756] mb-5" />
+      <div className="w-10 h-px bg-[#2B2740] mb-5" />
       <p className="text-[#6B7280] dark:text-gray-400 text-base max-w-md leading-relaxed mb-6">
         {t('chatSubtitle', lang)}
       </p>
@@ -37,7 +37,7 @@ function EmptyState({ onSend }: { onSend: (text: string) => void }) {
           <div
             key={q}
             onClick={() => onSend(q)}
-            className="text-left px-5 py-3 bg-white dark:bg-[#0F1A3E] border border-[#FF9933] rounded-lg text-sm text-[#0A0F2C] dark:text-gray-100 cursor-pointer hover:bg-[#FFF8F0] dark:hover:bg-[#1A2756] transition-colors"
+            className="text-left px-5 py-3 bg-white dark:bg-[#1A1828] border border-[#4F46E5] rounded-lg text-sm text-[#1B1830] dark:text-gray-100 cursor-pointer hover:bg-[#FFF8F0] dark:hover:bg-[#2B2740] transition-colors"
           >
             {q}
           </div>
@@ -55,7 +55,7 @@ export function ChatWindow({ messages, isLoading, onSend }: ChatWindowProps) {
   }, [messages, isLoading]);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-white dark:bg-[#0A0F2C] py-4">
+    <div className="flex-1 overflow-y-auto bg-white dark:bg-[#0E0D1A] py-4">
       {messages.length === 0 && !isLoading ? (
         <EmptyState onSend={onSend} />
       ) : (

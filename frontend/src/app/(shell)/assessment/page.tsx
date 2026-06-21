@@ -123,13 +123,13 @@ function QuestionRow({
     lang === 'hi' ? (QUESTION_HI[question.question_text] ?? question.question_text) : question.question_text;
 
   return (
-    <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-5 space-y-4">
+    <div className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] p-5 space-y-4">
       <div className="flex gap-3">
-        <span className="shrink-0 w-6 h-6 rounded-full bg-[#FFF3E0] dark:bg-[#FF9933]/10 flex items-center justify-center text-xs font-bold text-[#FF9933]">
+        <span className="shrink-0 w-6 h-6 rounded-full bg-[#EEEDFB] dark:bg-[#4F46E5]/10 flex items-center justify-center text-xs font-bold text-[#4F46E5]">
           {index + 1}
         </span>
         <div className="flex-1">
-          <p className="text-sm font-medium text-[#0A0F2C] dark:text-gray-100 leading-relaxed">{displayText}</p>
+          <p className="text-sm font-medium text-[#1B1830] dark:text-gray-100 leading-relaxed">{displayText}</p>
           {question.dpdp_section && (
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
               {t('wizardDpdpSection', lang)}: {question.dpdp_section}
@@ -170,8 +170,8 @@ function ReviewScreen({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-6">
-        <h2 className="text-xl font-bold text-[#0A0F2C] dark:text-gray-100 mb-2">{t('wizardReviewTitle', lang)}</h2>
+      <div className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] p-6">
+        <h2 className="text-xl font-bold text-[#1B1830] dark:text-gray-100 mb-2">{t('wizardReviewTitle', lang)}</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">{t('wizardReviewBody', lang)}</p>
       </div>
 
@@ -181,9 +181,9 @@ function ReviewScreen({
         const catName = lang === 'hi' ? (RISK_CATEGORY_HI[cat] ?? cat) : cat;
         const answered = questions.filter((q) => answers[q.id] !== undefined).length;
         return (
-          <div key={cat} className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-5">
+          <div key={cat} className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-[#0A0F2C] dark:text-gray-100 text-sm">{catName}</h3>
+              <h3 className="font-semibold text-[#1B1830] dark:text-gray-100 text-sm">{catName}</h3>
               <span className="text-xs text-gray-400 dark:text-gray-500">
                 {answered}/{questions.length}
               </span>
@@ -227,7 +227,7 @@ function ReviewScreen({
           type="button"
           onClick={onBack}
           disabled={submitting}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A2756] disabled:opacity-50 transition"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 dark:border-[#2B2740] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2B2740] disabled:opacity-50 transition"
         >
           <ChevronLeft size={16} />
           {t('wizardBack', lang)}
@@ -236,7 +236,7 @@ function ReviewScreen({
           type="button"
           onClick={onSubmit}
           disabled={submitting}
-          style={{ background: 'linear-gradient(135deg, #FF9933, #138808)' }}
+          style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-semibold text-sm disabled:opacity-60 transition"
         >
           {submitting ? (
@@ -345,7 +345,7 @@ export default function AssessmentPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-400">
-        <Loader2 size={32} className="animate-spin text-[#FF9933]" />
+        <Loader2 size={32} className="animate-spin text-[#4F46E5]" />
         <p className="text-sm">{t('wizardLoadingText', lang)}</p>
       </div>
     );
@@ -369,12 +369,12 @@ export default function AssessmentPage() {
   // ── Layout ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full overflow-y-auto bg-[#F9FAFB] dark:bg-[#0A0F2C]">
+    <div className="h-full overflow-y-auto bg-[#F9FAFB] dark:bg-[#0E0D1A]">
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-[#0A0F2C] dark:text-gray-100">{t('wizardTitle', lang)}</h1>
+          <h1 className="text-2xl font-bold text-[#1B1830] dark:text-gray-100">{t('wizardTitle', lang)}</h1>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('wizardNoPartial', lang)}</p>
         </div>
 
@@ -388,11 +388,11 @@ export default function AssessmentPage() {
             </span>
             <span>{isReview ? '100%' : `${Math.round(((stepIndex) / totalSteps) * 100)}%`}</span>
           </div>
-          <div className="h-2 bg-gray-200 dark:bg-[#1A2756] rounded-full overflow-hidden">
+          <div className="h-2 bg-gray-200 dark:bg-[#2B2740] rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
-                background: 'linear-gradient(90deg, #FF9933, #138808)',
+                background: 'linear-gradient(90deg, #4F46E5, #7C3AED)',
                 width: isReview ? '100%' : `${((stepIndex) / totalSteps) * 100}%`,
               }}
             />
@@ -406,7 +406,7 @@ export default function AssessmentPage() {
                 style={{
                   background:
                     i < stepIndex ? '#138808'
-                    : i === stepIndex && !isReview ? '#FF9933'
+                    : i === stepIndex && !isReview ? '#4F46E5'
                     : '#E5E7EB',
                 }}
               />
@@ -430,11 +430,11 @@ export default function AssessmentPage() {
         {!isReview && currentCategory && (
           <div className="space-y-4">
             {/* Step title */}
-            <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] px-6 py-4">
-              <p className="text-xs font-medium text-[#FF9933] uppercase tracking-wider mb-1">
+            <div className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] px-6 py-4">
+              <p className="text-xs font-medium text-[#4F46E5] uppercase tracking-wider mb-1">
                 {t('wizardStepLabel', lang)} {stepIndex + 1} — {steps.length} {t('wizardOfLabel', lang)}
               </p>
-              <h2 className="text-lg font-bold text-[#0A0F2C] dark:text-gray-100">
+              <h2 className="text-lg font-bold text-[#1B1830] dark:text-gray-100">
                 {lang === 'hi' ? (RISK_CATEGORY_HI[currentCategory] ?? currentCategory) : currentCategory}
               </h2>
             </div>
@@ -464,7 +464,7 @@ export default function AssessmentPage() {
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A2756] transition"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 dark:border-[#2B2740] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2B2740] transition"
                 >
                   <ChevronLeft size={16} />
                   {t('wizardBack', lang)}
@@ -473,7 +473,7 @@ export default function AssessmentPage() {
               <button
                 type="button"
                 onClick={handleNext}
-                style={{ background: 'linear-gradient(135deg, #FF9933, #138808)' }}
+                style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-semibold text-sm transition hover:opacity-90"
               >
                 {stepIndex === totalSteps - 1 ? t('wizardReviewBtn', lang) : t('wizardNext', lang)}

@@ -56,12 +56,12 @@ export function InputBar({ onSend, onVoice, isLoading }: InputBarProps) {
   const hint = t('inputHint', lang);
 
   return (
-    <div className="bg-white dark:bg-[#0F1A3E] border-t border-[#1A2756] px-4 py-3 shrink-0">
+    <div className="bg-white dark:bg-[#1A1828] border-t border-[#2B2740] px-4 py-3 shrink-0">
       <div
-        className={`flex items-end gap-3 bg-[#F9FAFB] dark:bg-[#0A0F2C] border rounded-2xl px-4 py-3 transition-all ${
+        className={`flex items-end gap-3 bg-[#F9FAFB] dark:bg-[#0E0D1A] border rounded-2xl px-4 py-3 transition-all ${
           isRecording
             ? 'border-red-300 ring-2 ring-red-100'
-            : 'border-[#1A2756] focus-within:border-[#FF9933] focus-within:ring-2 focus-within:ring-[#FF9933]/20'
+            : 'border-[#2B2740] focus-within:border-[#4F46E5] focus-within:ring-2 focus-within:ring-[#4F46E5]/20'
         }`}
       >
         <textarea
@@ -92,7 +92,7 @@ export function InputBar({ onSend, onVoice, isLoading }: InputBarProps) {
               className={`w-9 h-9 rounded-full flex items-center justify-center transition-all relative z-10 ${
                 isRecording
                   ? 'bg-red-500 text-white scale-110 shadow-md shadow-red-200'
-                  : 'bg-[#FF9933] text-white hover:bg-[#FFB366] disabled:opacity-40 disabled:cursor-not-allowed'
+                  : 'bg-[#4F46E5] text-white hover:bg-[#6366F1] disabled:opacity-40 disabled:cursor-not-allowed'
               }`}
             >
               {isRecording ? <MicOff size={16} /> : <Mic size={16} />}
@@ -107,7 +107,7 @@ export function InputBar({ onSend, onVoice, isLoading }: InputBarProps) {
             onClick={handleSend}
             disabled={!text.trim() || isLoading}
             title="Send message"
-            className="w-9 h-9 bg-[#0A0F2C] text-white rounded-full flex items-center justify-center hover:bg-[#1A2756] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+            className="w-9 h-9 bg-[#0E0D1A] text-white rounded-full flex items-center justify-center hover:bg-[#2B2740] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             <Send size={15} />
           </button>

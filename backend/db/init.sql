@@ -126,6 +126,31 @@ CREATE TABLE IF NOT EXISTS assessment_responses (
 CREATE INDEX IF NOT EXISTS idx_attempts_institution_time
     ON assessment_attempts(institution_id, created_at DESC);
 
+-- ── Action Queue (remediation tracker) ───────────────────────────────────────────
+-- Hybrid model: auto-generated items (is_custom=false) are deterministically
+-- regenerated on every assessment submission (DELETE-then-INSERT for the institution's
+-- non-custom rows); custom items (is_custom=true) are user-added and NEVER touched by
+-- regeneration. Both kinds are fully user-editable (text, category, effort, priority,
+-- status) and deletable. KNOWN TRADEOFF (v1): an in_progress auto item is wiped on the
+-- next submission like any other auto item — in-progress tracking is lost on resubmit.
+CREATE TABLE IF NOT EXISTS action_items (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    institution_id  UUID NOT NULL REFERENCES institutions(id),
+    category        TEXT NOT NULL,
+    task_text       TEXT NOT NULL,
+    priority        TEXT NOT NULL,        -- 'P1'..'P6'
+    priority_level  TEXT NOT NULL,        -- 'HIGH' | 'MED' (badge, derived from score band)
+    effort_estimate TEXT,                 -- e.g. "2-3 wks" — free text
+    status          TEXT NOT NULL DEFAULT 'not_started'
+                        CHECK (status IN ('not_started', 'in_progress', 'done')),
+    is_custom       BOOLEAN NOT NULL DEFAULT false,  -- true = user-added, survives regeneration
+    created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_action_items_institution
+    ON action_items(institution_id, priority);
+
 -- ── Admin panel (separate auth realm from institution users) ────────────────────
 -- admin_users are provisioned manually (seed_admin.py); no public signup.
 -- admin_sessions mirror `sessions` but with a distinct cookie so an institution

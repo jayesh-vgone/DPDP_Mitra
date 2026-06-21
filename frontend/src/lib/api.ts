@@ -16,6 +16,9 @@ import type {
   ScoresResponse,
   SubmitResponse,
   CategoryDetailOut,
+  ActionItem,
+  CreateActionItemRequest,
+  UpdateActionItemRequest,
   AdminUser,
   AdminQuestion,
   AdminInstitution,
@@ -222,6 +225,33 @@ export async function getCategoryDetail(
   categorySlug: string,
 ): Promise<CategoryDetailOut> {
   return apiFetch<CategoryDetailOut>(`/assessment/${attemptId}/categories/${categorySlug}`);
+}
+
+// ── Action Queue endpoints ─────────────────────────────────────────────────────
+
+export async function getActionItems(): Promise<ActionItem[]> {
+  return apiFetch<ActionItem[]>('/action-items');
+}
+
+export async function createActionItem(payload: CreateActionItemRequest): Promise<ActionItem> {
+  return apiFetch<ActionItem>('/action-items', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateActionItem(
+  id: string,
+  payload: UpdateActionItemRequest,
+): Promise<ActionItem> {
+  return apiFetch<ActionItem>(`/action-items/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteActionItem(id: string): Promise<void> {
+  await apiFetch<void>(`/action-items/${id}`, { method: 'DELETE' });
 }
 
 export async function downloadAssessmentReport(attemptId: string): Promise<void> {

@@ -215,6 +215,73 @@ const UI = {
   drillWeight:          { en: 'Weight', hi: 'भार' },
   drillLoading:         { en: 'Loading category detail…', hi: 'श्रेणी विवरण लोड हो रहा है…' },
   drillError:           { en: 'Failed to load category detail.', hi: 'श्रेणी विवरण लोड नहीं हो सका।' },
+
+  // ── Sidebar section labels ───────────────────────────────────────────────────
+  navSectionMain:       { en: 'Main',       hi: 'मुख्य' },
+  navSectionCompliance: { en: 'Compliance', hi: 'अनुपालन' },
+
+  // ── Top bar ──────────────────────────────────────────────────────────────────
+  breadcrumbRoot:           { en: 'Compliance', hi: 'अनुपालन' },
+  searchPlaceholder:        { en: 'Search…',     hi: 'खोजें…' },
+  searchComingSoon:         { en: 'Search is coming soon', hi: 'खोज जल्द आ रही है' },
+  notificationsComingSoon:  { en: 'Notifications coming soon', hi: 'सूचनाएं जल्द आ रही हैं' },
+
+  // ── Dashboard rebuild — header + stat cards ─────────────────────────────────
+  dashOverviewTitle:    { en: 'Compliance Overview', hi: 'अनुपालन अवलोकन' },
+  dashRunAssessment:    { en: 'Run assessment', hi: 'मूल्यांकन चलाएं' },
+  dashFilterLabel:      { en: 'Period', hi: 'अवधि' },
+  dashFilter3:          { en: 'Last 3 months', hi: 'पिछले 3 महीने' },
+  dashFilter6:          { en: 'Last 6 months', hi: 'पिछले 6 महीने' },
+  dashFilterAll:        { en: 'All time', hi: 'सभी समय' },
+  statOverallScore:     { en: 'Overall Score', hi: 'समग्र स्कोर' },
+  statHighRisk:         { en: 'High-Risk Areas', hi: 'उच्च-जोखिम क्षेत्र' },
+  statHighRiskSub:      { en: 'Critical categories', hi: 'गंभीर श्रेणियां' },
+  statOpenActions:      { en: 'Open Actions', hi: 'खुली कार्रवाइयां' },
+  statAcrossCategories: { en: 'Across {n} categories', hi: '{n} श्रेणियों में' },
+  statDaysToDeadline:   { en: 'Days to Deadline', hi: 'समय-सीमा में दिन' },
+  statNextReview:       { en: 'Next review', hi: 'अगली समीक्षा' },
+  statSinceLabel:       { en: 'since {month}', hi: '{month} से' },
+  statNoPrior:          { en: 'first assessment', hi: 'पहला मूल्यांकन' },
+
+  // ── Dashboard — overall score card stat list ────────────────────────────────
+  scoreHighRiskCount:   { en: 'High risk areas', hi: 'उच्च जोखिम क्षेत्र' },
+  scoreMedRiskCount:    { en: 'Medium risk areas', hi: 'मध्यम जोखिम क्षेत्र' },
+  scoreLowRiskCount:    { en: 'Low risk areas', hi: 'कम जोखिम क्षेत्र' },
+  scoreLastAssessed:    { en: 'Last assessed', hi: 'अंतिम मूल्यांकन' },
+  scoreNextReview:      { en: 'Next review', hi: 'अगली समीक्षा' },
+
+  // ── Dashboard — Compliance by Category table ────────────────────────────────
+  catTableTitle:        { en: 'Compliance by Category', hi: 'श्रेणी अनुसार अनुपालन' },
+  catColCategory:       { en: 'Category', hi: 'श्रेणी' },
+  catColScore:          { en: 'Score', hi: 'स्कोर' },
+  catColLevel:          { en: 'Level', hi: 'स्तर' },
+  catColTrend:          { en: 'Trend', hi: 'रुझान' },
+
+  // ── Dashboard — Action Queue panel ──────────────────────────────────────────
+  aqTitle:              { en: 'Action Queue', hi: 'कार्य सूची' },
+  aqColPriority:        { en: 'Priority', hi: 'प्राथमिकता' },
+  aqColTask:            { en: 'Remediation Task', hi: 'सुधार कार्य' },
+  aqColCategory:        { en: 'Category', hi: 'श्रेणी' },
+  aqColEffort:          { en: 'Effort', hi: 'प्रयास' },
+  aqColStatus:          { en: 'Status', hi: 'स्थिति' },
+  aqColActions:         { en: '', hi: '' },
+  aqEmpty:              { en: 'No action items yet. Run an assessment to generate remediation tasks, or add one manually.', hi: 'अभी तक कोई कार्य नहीं। सुधार कार्य उत्पन्न करने हेतु मूल्यांकन चलाएं, या मैन्युअल रूप से जोड़ें।' },
+  aqAddTask:            { en: '+ Add Task', hi: '+ कार्य जोड़ें' },
+  aqAddTitle:           { en: 'Add a custom task', hi: 'कस्टम कार्य जोड़ें' },
+  aqFieldCategory:      { en: 'Category', hi: 'श्रेणी' },
+  aqFieldTask:          { en: 'Task description', hi: 'कार्य विवरण' },
+  aqFieldEffort:        { en: 'Effort (e.g. 2-3 wks)', hi: 'प्रयास (जैसे 2-3 सप्ताह)' },
+  aqFieldPriority:      { en: 'Priority level', hi: 'प्राथमिकता स्तर' },
+  aqSave:               { en: 'Add task', hi: 'कार्य जोड़ें' },
+  aqCancel:             { en: 'Cancel', hi: 'रद्द करें' },
+  aqSaving:             { en: 'Saving…', hi: 'सहेज रहे हैं…' },
+  aqStatusNotStarted:   { en: 'Not started', hi: 'शुरू नहीं हुआ' },
+  aqStatusInProgress:   { en: 'In progress', hi: 'प्रगति पर' },
+  aqStatusDone:         { en: 'Done', hi: 'पूर्ण' },
+  aqDelete:             { en: 'Delete', hi: 'हटाएं' },
+  aqPriorityHigh:       { en: 'HIGH', hi: 'उच्च' },
+  aqPriorityMed:        { en: 'MED', hi: 'मध्यम' },
+  aqCustomBadge:        { en: 'Custom', hi: 'कस्टम' },
 } satisfies Record<string, { en: string; hi: string }>;
 
 export type TranslationKey = keyof typeof UI;

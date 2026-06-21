@@ -30,10 +30,10 @@ export default function ChatCopilotPage() {
         onNewChat={startNewConversation}
         onSelectConversation={selectConversation}
       />
-      <main className="flex flex-col flex-1 overflow-hidden bg-white dark:bg-[#0A0F2C]">
+      <main className="flex flex-col flex-1 overflow-hidden bg-white dark:bg-[#0E0D1A]">
         {assessmentMode && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-[#FFF3E0] border-b border-[#FF9933]/30 text-sm font-medium text-[#FF9933] shrink-0">
-            <span className="w-2 h-2 rounded-full bg-[#FF9933] animate-pulse" />
+          <div className="flex items-center gap-2 px-4 py-2 bg-[#EEEDFB] border-b border-[#4F46E5]/30 text-sm font-medium text-[#4F46E5] shrink-0">
+            <span className="w-2 h-2 rounded-full bg-[#4F46E5] animate-pulse" />
             <span>{t('assessmentModeActive', lang)}</span>
             <span className="text-[#9CA3AF] font-normal">·</span>
             <span className="text-[#9CA3AF] font-normal">{t('assessmentModeHint', lang)}</span>

@@ -120,12 +120,12 @@ function InstitutionDetailsSection() {
   const isEdtech = category === 'edtech';
 
   const inputClass =
-    'w-full rounded-xl border border-gray-200 dark:border-[#243570] bg-[#F9FAFB] dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 px-4 py-2.5 text-sm outline-none focus:border-[#FF9933] focus:ring-2 focus:ring-[#FF9933]/20 transition';
+    'w-full rounded-xl border border-gray-200 dark:border-[#363152] bg-[#F9FAFB] dark:bg-[#0E0D1A] text-[#111827] dark:text-gray-100 px-4 py-2.5 text-sm outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition';
 
   return (
-    <section className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-6">
+    <section className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] p-6">
       {/* Read-only overview */}
-      <h2 className="text-base font-semibold text-[#0A0F2C] dark:text-gray-100 mb-4">
+      <h2 className="text-base font-semibold text-[#1B1830] dark:text-gray-100 mb-4">
         {t('profileInstReadOnly', lang)}
       </h2>
       <div className="grid grid-cols-2 gap-3 mb-6 max-w-sm">
@@ -137,14 +137,14 @@ function InstitutionDetailsSection() {
         ].map(([label, value]) => (
           <div key={label}>
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">{label}</p>
-            <p className="text-sm font-medium text-[#0A0F2C] dark:text-gray-200">{value}</p>
+            <p className="text-sm font-medium text-[#1B1830] dark:text-gray-200">{value}</p>
           </div>
         ))}
       </div>
 
       {/* Editable fields */}
-      <div className="border-t border-gray-100 dark:border-[#1A2756] pt-5">
-        <h3 className="text-sm font-semibold text-[#0A0F2C] dark:text-gray-100 mb-4">
+      <div className="border-t border-gray-100 dark:border-[#2B2740] pt-5">
+        <h3 className="text-sm font-semibold text-[#1B1830] dark:text-gray-100 mb-4">
           {t('profileInstSection', lang)}
         </h3>
         <form onSubmit={handleSave} className="space-y-5 max-w-sm">
@@ -247,7 +247,7 @@ function InstitutionDetailsSection() {
             type="submit"
             disabled={saving || isEdtech && !location && !studentCount && !staffCount}
             className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60 transition hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #FF9933, #138808)' }}
+            style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
           >
             {saving ? t('profileInstSaving', lang) : t('profileInstSaveBtn', lang)}
           </button>
@@ -308,8 +308,8 @@ function AccountSection() {
   }
 
   return (
-    <section className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-6">
-      <h2 className="text-base font-semibold text-[#0A0F2C] dark:text-gray-100 mb-5">
+    <section className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] p-6">
+      <h2 className="text-base font-semibold text-[#1B1830] dark:text-gray-100 mb-5">
         {t('profileAccountSection', lang)}
       </h2>
       <form onSubmit={handleSave} className="space-y-4 max-w-sm">
@@ -321,7 +321,7 @@ function AccountSection() {
             type="text"
             value={name}
             onChange={(e) => { setName(e.target.value); setSuccess(''); setError(''); }}
-            className="w-full rounded-xl border border-gray-200 dark:border-[#243570] bg-[#F9FAFB] dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 px-4 py-2.5 text-sm outline-none focus:border-[#FF9933] focus:ring-2 focus:ring-[#FF9933]/20 transition"
+            className="w-full rounded-xl border border-gray-200 dark:border-[#363152] bg-[#F9FAFB] dark:bg-[#0E0D1A] text-[#111827] dark:text-gray-100 px-4 py-2.5 text-sm outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition"
           />
         </div>
         <div>
@@ -332,7 +332,7 @@ function AccountSection() {
             type="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setSuccess(''); setError(''); }}
-            className="w-full rounded-xl border border-gray-200 dark:border-[#243570] bg-[#F9FAFB] dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 px-4 py-2.5 text-sm outline-none focus:border-[#FF9933] focus:ring-2 focus:ring-[#FF9933]/20 transition"
+            className="w-full rounded-xl border border-gray-200 dark:border-[#363152] bg-[#F9FAFB] dark:bg-[#0E0D1A] text-[#111827] dark:text-gray-100 px-4 py-2.5 text-sm outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition"
           />
         </div>
 
@@ -347,7 +347,7 @@ function AccountSection() {
           type="submit"
           disabled={saving}
           className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60 transition hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #FF9933, #138808)' }}
+          style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
         >
           {saving ? t('profileSaving', lang) : t('profileSaveBtn', lang)}
         </button>
@@ -421,7 +421,7 @@ function PasswordSection() {
             type={show ? 'text' : 'password'}
             value={value}
             onChange={(e) => { onChange(e.target.value); setSuccess(''); setError(''); }}
-            className="w-full rounded-xl border border-gray-200 dark:border-[#243570] bg-[#F9FAFB] dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 px-4 py-2.5 pr-14 text-sm outline-none focus:border-[#FF9933] focus:ring-2 focus:ring-[#FF9933]/20 transition"
+            className="w-full rounded-xl border border-gray-200 dark:border-[#363152] bg-[#F9FAFB] dark:bg-[#0E0D1A] text-[#111827] dark:text-gray-100 px-4 py-2.5 pr-14 text-sm outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition"
           />
           <button
             type="button"
@@ -437,8 +437,8 @@ function PasswordSection() {
   }
 
   return (
-    <section className="bg-white dark:bg-[#0F1A3E] rounded-2xl border border-gray-100 dark:border-[#1A2756] p-6">
-      <h2 className="text-base font-semibold text-[#0A0F2C] dark:text-gray-100 mb-5">
+    <section className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] p-6">
+      <h2 className="text-base font-semibold text-[#1B1830] dark:text-gray-100 mb-5">
         {t('profilePasswordSection', lang)}
       </h2>
       <form onSubmit={handleChange} className="space-y-4 max-w-sm">
@@ -475,7 +475,7 @@ function PasswordSection() {
           type="submit"
           disabled={changing || !oldPw || !newPw || !confirmPw}
           className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-60 transition hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #FF9933, #138808)' }}
+          style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
         >
           {changing ? t('profileChangingPw', lang) : t('profileChangePwBtn', lang)}
         </button>
@@ -488,7 +488,7 @@ function PasswordSection() {
 
 export default function ProfilePage() {
   return (
-    <div className="h-full overflow-y-auto bg-[#F9FAFB] dark:bg-[#0A0F2C] px-8 py-8 space-y-6">
+    <div className="h-full overflow-y-auto bg-[#F9FAFB] dark:bg-[#0E0D1A] px-8 py-8 space-y-6">
       <AccountSection />
       <InstitutionDetailsSection />
       <PasswordSection />

@@ -41,7 +41,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#0A0F2C] flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#0E0D1A] flex flex-col items-center justify-center px-4">
       {/* Language toggle — top right */}
       <div className="absolute top-4 right-6">
         <LanguageToggle />
@@ -50,16 +50,16 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-[#FF9933] p-3 rounded-2xl mb-4 shadow-md">
+          <div className="bg-[#4F46E5] p-3 rounded-2xl mb-4 shadow-md">
             <Shield size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-[#0A0F2C]">EduPrivacy AI</h1>
-          <p className="text-sm text-[#FF9933] font-medium mt-1">DPDP Copilot</p>
+          <h1 className="text-2xl font-bold text-[#1B1830]">EduPrivacy AI</h1>
+          <p className="text-sm text-[#4F46E5] font-medium mt-1">DPDP Copilot</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white dark:bg-[#0F1A3E] rounded-2xl shadow-sm border border-gray-200 dark:border-[#1A2756] p-8">
-          <h2 className="text-xl font-bold text-[#0A0F2C] dark:text-gray-100 mb-1">{t('loginTitle', lang)}</h2>
+        <div className="bg-white dark:bg-[#1A1828] rounded-2xl shadow-sm border border-gray-200 dark:border-[#2B2740] p-8">
+          <h2 className="text-xl font-bold text-[#1B1830] dark:text-gray-100 mb-1">{t('loginTitle', lang)}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t('loginSubtitle', lang)}</p>
 
           {error && (
@@ -70,7 +70,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-[#0A0F2C] dark:text-gray-200 mb-1.5">
+              <label className="block text-sm font-medium text-[#1B1830] dark:text-gray-200 mb-1.5">
                 {t('emailLabel', lang)}
               </label>
               <input
@@ -78,13 +78,13 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] bg-white dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#2B2740] bg-white dark:bg-[#0E0D1A] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent transition"
                 placeholder="you@school.edu.in"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#0A0F2C] dark:text-gray-200 mb-1.5">
+              <label className="block text-sm font-medium text-[#1B1830] dark:text-gray-200 mb-1.5">
                 {t('passwordLabel', lang)}
               </label>
               <input
@@ -92,7 +92,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#1A2756] bg-white dark:bg-[#0A0F2C] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF9933] focus:border-transparent transition"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-[#2B2740] bg-white dark:bg-[#0E0D1A] text-[#111827] dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent transition"
                 placeholder="••••••••"
               />
             </div>
@@ -100,7 +100,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              style={{ background: 'linear-gradient(135deg, #FF9933, #138808)' }}
+              style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
               className="w-full py-2.5 rounded-xl text-white font-semibold text-sm transition disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90"
             >
               {loading ? t('loginLoading', lang) : t('loginBtn', lang)}
@@ -109,7 +109,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
             {t('noAccount', lang)}{' '}
-            <Link href="/register" className="text-[#FF9933] font-medium hover:underline">
+            <Link href="/register" className="text-[#4F46E5] font-medium hover:underline">
               {t('registerLink', lang)}
             </Link>
           </p>
