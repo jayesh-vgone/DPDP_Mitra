@@ -17,6 +17,14 @@ CREATE TABLE IF NOT EXISTS institutions (
     plan            TEXT NOT NULL DEFAULT 'Basic',
     category        TEXT NOT NULL DEFAULT 'school'
                         CHECK (category IN ('school', 'higher_ed', 'edtech')),
+    -- institution_subtype + per-field verification flags (admin-verified identity).
+    -- Included here so a fresh DB built from init.sql alone is complete; the
+    -- migrate_institution_details.py script remains for upgrading existing DBs.
+    institution_subtype          TEXT,
+    student_count_verified       BOOLEAN NOT NULL DEFAULT false,
+    staff_count_verified         BOOLEAN NOT NULL DEFAULT false,
+    institution_subtype_verified BOOLEAN NOT NULL DEFAULT false,
+    location_verified            BOOLEAN NOT NULL DEFAULT false,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 

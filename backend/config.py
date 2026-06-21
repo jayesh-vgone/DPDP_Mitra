@@ -25,6 +25,14 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000"
 
+    # Session-cookie attributes. For a split deployment where the frontend and
+    # backend are on different domains (e.g. Vercel + Render), browsers only send
+    # the cookie on cross-site fetch() when it is SameSite=None AND Secure.
+    # Local dev keeps the relaxed defaults below; production sets:
+    #   COOKIE_SECURE=true   COOKIE_SAMESITE=none
+    cookie_secure: bool = False
+    cookie_samesite: str = "lax"
+
     model_config = {"env_file": str(_ENV_FILE), "env_file_encoding": "utf-8"}
 
 

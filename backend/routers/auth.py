@@ -16,6 +16,7 @@ import bcrypt
 from fastapi import APIRouter, Cookie, HTTPException, Request, Response, status
 from typing import Optional
 
+from config import settings
 from db.pool import get_pool
 from db import queries
 from schemas.auth import AuthResponse, InstitutionOut, LoginRequest, RegisterRequest, UserOut
@@ -27,13 +28,13 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 _COOKIE_MAX_AGE = 7 * 24 * 60 * 60
 
 
-def _set_session_cookie(response: Response, session_id: str, secure: bool = False) -> None:
+def _set_session_cookie(response: Response, session_id: str) -> None:
     response.set_cookie(
         key=SESSION_COOKIE,
         value=session_id,
         httponly=True,
-        samesite="lax",
-        secure=secure,
+        samesite=settings.cookie_samesite,
+        secure=settings.cookie_secure,
         max_age=_COOKIE_MAX_AGE,
         path="/",
     )
@@ -157,7 +158,12 @@ async def logout(
         pool = get_pool()
         await queries.delete_session(pool, session_id)
 
-    response.delete_cookie(key=SESSION_COOKIE, path="/")
+    response.delete_cookie(
+        key=SESSION_COOKIE,
+        path="/",
+        samesite=settings.cookie_samesite,
+        secure=settings.cookie_secure,
+    )
 
 
 @router.get("/me", response_model=AuthResponse)

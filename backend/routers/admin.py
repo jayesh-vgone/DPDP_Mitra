@@ -24,6 +24,7 @@ import bcrypt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from typing import Optional
 
+from config import settings
 from constants import VERIFIABLE_INSTITUTION_FIELDS
 from db.pool import get_pool
 from db import queries
@@ -45,13 +46,13 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 _COOKIE_MAX_AGE = 7 * 24 * 60 * 60
 
 
-def _set_admin_cookie(response: Response, session_id: str, secure: bool = False) -> None:
+def _set_admin_cookie(response: Response, session_id: str) -> None:
     response.set_cookie(
         key=ADMIN_SESSION_COOKIE,
         value=session_id,
         httponly=True,
-        samesite="lax",
-        secure=secure,
+        samesite=settings.cookie_samesite,
+        secure=settings.cookie_secure,
         max_age=_COOKIE_MAX_AGE,
         path="/",
     )
@@ -88,7 +89,12 @@ async def admin_logout(
     if admin_session:
         pool = get_pool()
         await queries.delete_admin_session(pool, admin_session)
-    response.delete_cookie(key=ADMIN_SESSION_COOKIE, path="/")
+    response.delete_cookie(
+        key=ADMIN_SESSION_COOKIE,
+        path="/",
+        samesite=settings.cookie_samesite,
+        secure=settings.cookie_secure,
+    )
 
 
 @router.get("/me", response_model=AdminOut)

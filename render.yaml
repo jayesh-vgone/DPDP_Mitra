@@ -1,0 +1,59 @@
+# Render Blueprint — backend (FastAPI) + managed Postgres (with pgvector).
+# Deploy via the Render dashboard: New → Blueprint → point at this repo.
+# After the first deploy, open the backend service Shell and run the DB
+# bootstrap + seed scripts (see DEPLOY.md).
+#
+# Secrets marked `sync: false` are NOT stored in git — set them in the Render
+# dashboard (Environment tab) after the Blueprint is created:
+#   GROQ_API_KEY, COHERE_API_KEY, CORS_ORIGINS
+#
+# CORS_ORIGINS must be set to your Vercel frontend URL once it exists, e.g.
+#   https://eduprivacy.vercel.app
+# (only relevant if you call the backend cross-origin directly; the recommended
+#  Vercel rewrite/proxy in DEPLOY.md makes requests same-origin so CORS is moot.)
+
+databases:
+  - name: dpdp-postgres
+    plan: free               # free Postgres expires after 30 days — upgrade for real use
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: dpdp-backend
+    runtime: python
+    plan: free               # free web service spins down after ~15 min idle (cold start ~1 min)
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dpdp-postgres
+          property: connectionString
+      - key: APP_ENV
+        value: production
+      # Cross-site session cookies require SameSite=None + Secure so the browser
+      # sends them on credentialed fetch() from the Vercel frontend.
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: JWT_SECRET
+        generateValue: true   # reserved future hook; a strong random value is fine
+      - key: LLM_PROVIDER
+        value: groq
+      - key: STT_PROVIDER
+        value: groq
+      - key: TTS_PROVIDER
+        value: browser
+      - key: EMBEDDING_PROVIDER
+        value: cohere
+      - key: GROQ_API_KEY
+        sync: false           # set in the Render dashboard
+      - key: COHERE_API_KEY
+        sync: false           # set in the Render dashboard
+      - key: CORS_ORIGINS
+        sync: false           # set to your Vercel URL (https://<app>.vercel.app)

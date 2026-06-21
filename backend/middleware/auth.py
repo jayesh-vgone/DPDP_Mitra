@@ -6,10 +6,22 @@ from jose import jwt, JWTError
 from config import settings
 
 SKIP_PATHS = {"/health"}
-# /auth/* and /admin/* routes use their own session-cookie mechanisms and must
-# not require a JWT (admin has a fully separate session realm — see
-# middleware/admin_session.py).
-SKIP_PREFIXES = ("/auth/", "/admin/")
+# This JWT middleware is a RESERVED hook for a future third-party / parent-app
+# integration (Bearer-token auth). The app's own auth is server-side session
+# cookies, enforced per-route via Depends(get_session_user) / get_current_admin.
+# Every first-party route therefore skips this middleware — otherwise, in
+# production (APP_ENV != development) it would 401 the entire cookie-authed app
+# before the route's own session dependency ever runs.
+SKIP_PREFIXES = (
+    "/auth/",
+    "/admin/",
+    "/chat",
+    "/voice",
+    "/conversations",
+    "/assessment",
+    "/profile",
+    "/action-items",
+)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
