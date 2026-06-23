@@ -48,7 +48,6 @@ class InstitutionOut(BaseModel):
     location: Optional[str]
     student_count: Optional[int]
     staff_count: Optional[int]
-    invite_code: str
     plan: str
     category: str = "school"  # added Phase 6a
     # institution_subtype + verification flags — added post-Phase 8

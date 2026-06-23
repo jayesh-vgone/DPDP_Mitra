@@ -75,7 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_messages_conv_time ON messages(conversation_id, c
 
 CREATE TABLE IF NOT EXISTS dpdp_embeddings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    section TEXT NOT NULL,
+    section TEXT,
     content TEXT NOT NULL,
     embedding vector(1024) NOT NULL
 );

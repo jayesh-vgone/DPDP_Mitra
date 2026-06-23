@@ -10,6 +10,7 @@ which makes these functions easier to test in isolation.
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -29,7 +30,6 @@ def _institution_row_to_dict(row) -> dict:
         "location": row["location"],
         "student_count": row["student_count"],
         "staff_count": row["staff_count"],
-        "invite_code": row["invite_code"],
         "plan": row["plan"],
         # category added in Phase 6a
         "category": row["category"] if "category" in keys else "school",
@@ -309,34 +309,88 @@ async def create_session(pool: asyncpg.Pool, user_id: str) -> str:
     return str(row["id"])
 
 
-async def get_session(pool: asyncpg.Pool, session_id: str) -> Optional[str]:
+@dataclass
+class SessionValidation:
     """
-    Validate a session and return its user_id, or None if missing/expired.
+    Result of validating a session cookie.
+
+    - user_id set        → valid session for an existing user.
+    - user_id None,
+      orphaned False      → session missing, expired, or malformed cookie.
+    - user_id None,
+      orphaned True       → session row existed AND was unexpired, but its
+                            referenced user no longer exists in `users`
+                            (e.g. user deleted, or a DB migration repopulated
+                            `users` empty). The orphan session row has already
+                            been deleted as a side effect; the caller should
+                            also clear the client's cookie.
+    """
+
+    user_id: Optional[str] = None
+    orphaned: bool = False
+
+    @property
+    def valid(self) -> bool:
+        return self.user_id is not None
+
+
+async def get_session(pool: asyncpg.Pool, session_id: str) -> SessionValidation:
+    """
+    Validate a session and return a SessionValidation.
+
+    Validity now requires BOTH that the session row exists and is unexpired AND
+    that the referenced user still exists in `users` — enforced via a JOIN, not
+    just a lookup on `sessions`. This closes a bug where a session could outlive
+    its user (across a DB migration / user deletion) because the old query only
+    checked the session row, never confirming the user was still present.
 
     If valid, bumps expires_at forward by SESSION_TTL_DAYS (sliding expiry —
     active users stay logged in indefinitely; idle users are logged out after
-    7 days of inactivity).
-    Returns None (not 500) if session_id is not a valid UUID format.
+    7 days of inactivity). The 7-day window is unchanged.
+
+    Returns an invalid result (not a 500) if session_id is not a valid UUID.
     """
     new_expires = datetime.now(timezone.utc) + timedelta(days=SESSION_TTL_DAYS)
     try:
+        # Bump expires_at and return user_id only when the session is unexpired
+        # AND its user still exists (the JOIN to users enforces the latter).
         row = await pool.fetchrow(
             """
-            UPDATE sessions
+            UPDATE sessions s
             SET expires_at = $2
-            WHERE id = $1::uuid
-              AND expires_at > now()
-            RETURNING user_id
+            FROM users u
+            WHERE s.id = $1::uuid
+              AND s.expires_at > now()
+              AND s.user_id = u.id
+            RETURNING s.user_id
             """,
             session_id,
             new_expires,
         )
     except asyncpg.DataError:
         # session_id is not a valid UUID — treat as invalid session
-        return None
-    if row is None:
-        return None
-    return row["user_id"]
+        return SessionValidation()
+
+    if row is not None:
+        return SessionValidation(user_id=row["user_id"])
+
+    # The JOIN matched nothing. Distinguish an orphaned-but-live session
+    # (user gone) from a genuinely missing/expired one, so we can clean up the
+    # orphan row and signal the caller to clear the cookie.
+    try:
+        live = await pool.fetchrow(
+            "SELECT 1 FROM sessions WHERE id = $1::uuid AND expires_at > now()",
+            session_id,
+        )
+    except asyncpg.DataError:
+        return SessionValidation()
+
+    if live is not None:
+        # Session is live but its user no longer exists → delete the orphan row.
+        await pool.execute("DELETE FROM sessions WHERE id = $1::uuid", session_id)
+        return SessionValidation(orphaned=True)
+
+    return SessionValidation()  # genuinely missing or expired
 
 
 async def delete_session(pool: asyncpg.Pool, session_id: str) -> None:
@@ -518,12 +572,41 @@ async def load_history(
     return [{"role": r["role"], "content": r["content"]} for r in rows]
 
 
-async def list_messages(pool: asyncpg.Pool, conversation_id: str) -> list[dict]:
+async def check_conversation_ownership(
+    pool: asyncpg.Pool, conversation_id: str, user_id: str
+) -> bool:
+    """
+    Return True only if the conversation exists and belongs to user_id.
+
+    Callers use this to gate any operation on a conversation supplied by the
+    client — prevents cross-user data access (BOLA). Treats malformed UUIDs as
+    non-existent rather than raising.
+    """
+    try:
+        row = await pool.fetchrow(
+            "SELECT 1 FROM conversations WHERE id = $1::uuid AND user_id = $2",
+            conversation_id,
+            user_id,
+        )
+    except asyncpg.DataError:
+        return False
+    return row is not None
+
+
+async def list_messages(
+    pool: asyncpg.Pool, conversation_id: str, user_id: str
+) -> Optional[list[dict]]:
     """
     Return the full message history for one conversation, ordered chronologically.
 
-    Used by GET /conversations/{id}/messages — the frontend renders them top-to-bottom.
+    Returns None if the conversation does not exist or does not belong to user_id
+    — the caller (conversations router) raises a 404 in that case, deliberately
+    indistinguishable from "conversation exists but belongs to someone else"
+    (avoids leaking UUID existence to other users).
     """
+    if not await check_conversation_ownership(pool, conversation_id, user_id):
+        return None
+
     rows = await pool.fetch(
         """
         SELECT id, conversation_id, role, content, input_type, language, created_at
@@ -1042,26 +1125,49 @@ async def create_admin_session(pool: asyncpg.Pool, admin_id: str) -> str:
 async def get_admin_session(pool: asyncpg.Pool, session_id: str) -> Optional[str]:
     """
     Validate an admin session and return its admin_id, or None if missing/expired.
+
+    Mirrors the institution get_session() fix: the UPDATE JOINs admin_users so a
+    deleted admin account immediately invalidates any live admin_sessions rows —
+    an orphaned session cannot outlive the admin account it references.
+    If an orphaned-but-live row is found, it is deleted before returning None.
     Sliding expiry like institution sessions. Guards against non-UUID cookies.
     """
     new_expires = datetime.now(timezone.utc) + timedelta(days=ADMIN_SESSION_TTL_DAYS)
     try:
         row = await pool.fetchrow(
             """
-            UPDATE admin_sessions
+            UPDATE admin_sessions s
             SET expires_at = $2
-            WHERE id = $1::uuid
-              AND expires_at > now()
-            RETURNING admin_id
+            FROM admin_users a
+            WHERE s.id = $1::uuid
+              AND s.expires_at > now()
+              AND s.admin_id = a.id
+            RETURNING s.admin_id
             """,
             session_id,
             new_expires,
         )
     except asyncpg.DataError:
         return None
-    if row is None:
+
+    if row is not None:
+        return str(row["admin_id"])
+
+    # JOIN matched nothing. Distinguish an orphaned-but-live session (admin
+    # account deleted) from a genuinely expired/missing one. Clean up orphans.
+    try:
+        live = await pool.fetchrow(
+            "SELECT 1 FROM admin_sessions WHERE id = $1::uuid AND expires_at > now()",
+            session_id,
+        )
+    except asyncpg.DataError:
         return None
-    return str(row["admin_id"])
+
+    if live is not None:
+        # Session is live but its admin no longer exists — delete the orphan row.
+        await pool.execute("DELETE FROM admin_sessions WHERE id = $1::uuid", session_id)
+
+    return None
 
 
 async def delete_admin_session(pool: asyncpg.Pool, session_id: str) -> None:

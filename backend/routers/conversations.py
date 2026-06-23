@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from db.pool import get_pool
@@ -29,4 +29,7 @@ async def list_conversations(user_id: str = Depends(get_session_user)):
 async def get_messages(conv_id: str, user_id: str = Depends(get_session_user)):
     """Return full message history for one conversation, ordered chronologically."""
     pool = get_pool()
-    return await queries.list_messages(pool, conv_id)
+    messages = await queries.list_messages(pool, conv_id, user_id)
+    if messages is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    return messages

@@ -12,6 +12,7 @@ const UI = {
   navPolicies:      { en: 'Policies',    hi: 'नीतियां' },
   navIncidents:     { en: 'Incidents',   hi: 'घटनाएं' },
   navAdmin:         { en: 'Admin',       hi: 'प्रशासन' },
+  navInternalAudit: { en: 'Internal Audit', hi: 'आंतरिक लेखापरीक्षा' },
   navSoon:          { en: 'Soon',        hi: 'जल्द' },
 
   // Institution hero

@@ -1,6 +1,9 @@
 # ── Project-specific ─────────────────────────────────────────────────────────
 # CLAUDE.md contains project context instructions — kept out of source control.
 CLAUDE.md
+SECURITY_AUDIT.md
+perf-review-findings.md
+DEPLOY.md
 
 # ── Python virtual environment ────────────────────────────────────────────────
 # The venv/ sits at the project root alongside backend/ and frontend/.

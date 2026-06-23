@@ -21,7 +21,6 @@ export interface AuthInstitution {
   location: string | null;
   student_count: number | null;
   staff_count: number | null;
-  invite_code: string;
   plan: string;
   category: 'school' | 'higher_ed' | 'edtech';
   institution_subtype: string | null;

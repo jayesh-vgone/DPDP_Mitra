@@ -1,11 +1,19 @@
 """
-Three-layer prompt-injection defence for DPDP Mitra.
+Four-layer prompt-injection / citation-grounding defence for DPDP Mitra.
 
-Layer 1 (check_injection)  — detect injection phrases BEFORE calling the LLM.
-Layer 2                    — hardened system prompt prefix (in prompts.py).
-Layer 3 (check_output_scope) — heuristic scope check on the LLM reply AFTER
-                               it returns, without a second LLM call.
+Layer 1 (check_injection)        — detect injection phrases BEFORE calling the LLM.
+Layer 2                          — hardened system prompt prefix (in prompts.py).
+Layer 3 (check_output_scope)     — heuristic scope check on the LLM reply AFTER
+                                   it returns, without a second LLM call.
+Layer 4 (check_citation_grounding) — log-only: flag citations that do not match
+                                   the headers actually present in the retrieved
+                                   context block for this turn.
 """
+
+import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ── Layer 1 — injection phrase blocklist ─────────────────────────────────────
 
@@ -120,3 +128,108 @@ def check_output_scope(user_message: str, reply: str, lang: str) -> str | None:
         f"or user message. User message: {user_message[:120]!r}"
     )
     return refusal_text(lang)
+
+
+# ── Layer 4 — citation grounding check (log-only, not a hard block) ───────────
+
+# Matches "Party Name v. Other Party" or "Party Name vs Other Party" patterns.
+# Capturing groups are intentionally broad — we strip and normalise afterwards.
+_CASE_CITE_RE = re.compile(
+    r"([A-Z][A-Za-z\.&\s\(\)\']{1,60}?)\s+v(?:s\.?)?\.?\s+([A-Z][A-Za-z\.&\s\(\)\']{1,60}?)(?=[,\.\;\(\"\n]|$)",
+)
+
+# Matches "Section 8(5)" / "Section 17(2)(a)" in English replies.
+_SECTION_EN_RE = re.compile(r"\bSection\s+([\d][\w\(\)]*)", re.IGNORECASE)
+# Matches "धारा 8(5)" in Hindi replies.
+_SECTION_HI_RE = re.compile(r"धारा\s+([\d][\w\(\)]*)")
+
+
+def _names_overlap(cited: str, title: str) -> bool:
+    """Return True when cited case name and retrieved doc_title likely refer to the same case."""
+    if cited in title or title in cited:
+        return True
+    # Word-level overlap: require ≥2 significant words in common (handles "K.S. Puttaswamy v. Union
+    # of India" matching "Justice K.S. Puttaswamy (Retd.) v. Union of India").
+    stops = {"v.", "v", "vs", "vs.", "state", "of", "the", "union", "india", "&",
+             "anr.", "ors.", "retd.", "justice", "mr.", "mrs.", "dr.", "in", "and"}
+    cited_sig = {w for w in cited.split() if w not in stops and len(w) > 1}
+    title_sig = {w for w in title.split() if w not in stops and len(w) > 1}
+    return len(cited_sig & title_sig) >= 2
+
+
+def check_citation_grounding(
+    reply: str,
+    all_chunks: list[dict],
+    user_message: str,
+) -> None:
+    """
+    Layer 4 — log-only citation grounding check.
+
+    Warns (logger.warning) when the LLM response cites a case name or DPDP Act
+    section that was NOT present as a header in the retrieved context block for
+    this turn.  This is a monitoring signal — it does NOT block or modify the reply.
+    Call this ONLY when the reply has already passed the Layer 3 scope check.
+    """
+    from retrieval import CASE_LAW_RELEVANCE_THRESHOLD  # local import avoids circular at module load
+
+    act_chunks = [c for c in all_chunks if c.get("doc_type") != "case_law"]
+    case_law_chunks = [
+        c for c in all_chunks
+        if c.get("doc_type") == "case_law"
+        and c.get("similarity_score", 1.0) < CASE_LAW_RELEVANCE_THRESHOLD
+    ]
+
+    # ── Case-name check ───────────────────────────────────────────────────────
+    cited_cases = [
+        f"{m.group(1).strip().lower()} v. {m.group(2).strip().lower()}"
+        for m in _CASE_CITE_RE.finditer(reply)
+        if len(m.group(1).strip()) > 2 and len(m.group(2).strip()) > 2
+    ]
+
+    if cited_cases:
+        if not case_law_chunks:
+            logger.warning(
+                "[citation-grounding] Reply cites case(s) but no case-law was retrieved "
+                "this turn. Cited: %r | query: %.120s",
+                cited_cases[:5],
+                user_message,
+            )
+        else:
+            retrieved_titles = [
+                (c.get("doc_title") or "").lower()
+                for c in case_law_chunks
+            ]
+            for cited in cited_cases:
+                if not any(_names_overlap(cited, t) for t in retrieved_titles if t):
+                    logger.warning(
+                        "[citation-grounding] Cited case not in retrieved context: %r | "
+                        "retrieved titles: %r | query: %.120s",
+                        cited,
+                        retrieved_titles,
+                        user_message,
+                    )
+
+    # ── DPDP Act section check ────────────────────────────────────────────────
+    if act_chunks:
+        cited_sections: set[str] = set()
+        for m in _SECTION_EN_RE.finditer(reply):
+            cited_sections.add(m.group(1).lower())
+        for m in _SECTION_HI_RE.finditer(reply):
+            cited_sections.add(m.group(1).lower())
+
+        retrieved_section_nums: set[str] = set()
+        for c in act_chunks:
+            raw = (c.get("section") or "").lower()
+            # Normalise "section 8(5)" → "8(5)", or pass through if already bare
+            m = re.match(r"section\s+(.*)", raw)
+            retrieved_section_nums.add(m.group(1).strip() if m else raw.strip())
+
+        for sec in cited_sections:
+            if sec not in retrieved_section_nums:
+                logger.warning(
+                    "[citation-grounding] DPDP section cited not in retrieved context: "
+                    "Section %s | retrieved: %r | query: %.120s",
+                    sec,
+                    sorted(retrieved_section_nums),
+                    user_message,
+                )

@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   FileText,
   ShieldAlert,
+  SearchCheck,
   Users,
   type LucideProps,
 } from 'lucide-react';
@@ -38,6 +39,8 @@ const NAV_GROUPS: Array<{ sectionKey: TranslationKey; items: NavItem[] }> = [
     items: [
       { labelKey: 'navPolicies', icon: FileText, href: '#', disabled: true },
       { labelKey: 'navIncidents', icon: ShieldAlert, href: '#', disabled: true },
+      // TODO: Phase X — Internal Audit module
+      { labelKey: 'navInternalAudit', icon: SearchCheck, href: '#', disabled: true },
       { labelKey: 'navAdmin', icon: Users, href: '#', disabled: true },
     ],
   },

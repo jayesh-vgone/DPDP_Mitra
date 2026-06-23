@@ -21,13 +21,14 @@ change-audit log. There is ONE shared question bank per institution_category.
 """
 
 import bcrypt
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from typing import Optional
 
 from config import settings
 from constants import VERIFIABLE_INSTITUTION_FIELDS
 from db.pool import get_pool
 from db import queries
+from limiter import limiter
 from middleware.admin_session import get_current_admin, ADMIN_SESSION_COOKIE
 from schemas.admin import (
     AdminInstitutionOut,
@@ -61,7 +62,8 @@ def _set_admin_cookie(response: Response, session_id: str) -> None:
 # ── Auth ─────────────────────────────────────────────────────────────────────
 
 @router.post("/login", response_model=AdminOut)
-async def admin_login(req: AdminLoginRequest, response: Response):
+@limiter.limit("5/15minutes")
+async def admin_login(request: Request, req: AdminLoginRequest, response: Response):
     """Verify against admin_users, create an admin session, set the cookie."""
     pool = get_pool()
     admin = await queries.get_admin_by_email(pool, req.email)

@@ -1,7 +1,10 @@
 import base64
+import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
+
+logger = logging.getLogger(__name__)
 
 from schemas.voice import VoiceRequest, VoiceResponse
 from schemas.chat import MessageOut
@@ -10,7 +13,7 @@ from providers.stt.factory import get_stt_provider
 from providers.tts.factory import get_tts_provider
 from prompts import build_system_prompt
 from retrieval import retrieve_chunks
-from guardrails import check_injection, check_output_scope
+from guardrails import check_injection, check_output_scope, check_citation_grounding
 from db.pool import get_pool
 from db import queries
 from middleware.session import get_session_user
@@ -41,15 +44,18 @@ async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
 
     await queries.ensure_user(pool, user_id)
 
+    # Ownership check: if a conversation_id is supplied, it must belong to this user.
+    if req.conversation_id and not await queries.check_conversation_ownership(pool, req.conversation_id, user_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
     stt = get_stt_provider()
     llm = get_llm_provider()
     tts = get_tts_provider()
 
-    print(f"[VOICE DIAG] received audio_base64 length: {len(req.audio_base64)}")
+    logger.debug("voice: b64_len=%d", len(req.audio_base64))
     audio_bytes = base64.b64decode(req.audio_base64)
-    print(f"[VOICE DIAG] decoded audio_bytes: {len(audio_bytes)} bytes | format: {req.audio_format} | lang: {req.lang}")
+    logger.debug("voice: audio_bytes=%d format=%s lang=%s", len(audio_bytes), req.audio_format, req.lang)
     transcript = await stt.transcribe(audio_bytes, req.audio_format, req.lang)
-    print(f"[VOICE DIAG] STT transcript: {repr(transcript)}")
 
     # ── Read current assessment_mode before any early-return paths ────────────
     current_mode = False
@@ -117,16 +123,18 @@ async def voice(req: VoiceRequest, user_id: str = Depends(get_session_user)):
     system_prompt = build_system_prompt(req.lang, chunks, assessment=assessment_ctx)
 
     reply = await llm.chat(system_prompt, db_history, transcript)
-    print(f"[VOICE DIAG] LLM reply length: {len(reply)} chars | first 120: {repr(reply[:120])}")
 
     # ── Layer 3: output scope check ───────────────────────────────────────────
     scope_refusal = check_output_scope(transcript, reply, req.lang)
     if scope_refusal:
         reply = scope_refusal
-        print(f"[VOICE DIAG] reply replaced by scope_refusal")
+        logger.debug("voice: reply replaced by scope_refusal")
+    else:
+        # ── Layer 4: citation grounding check (log-only, never blocks) ────────
+        check_citation_grounding(reply, chunks, transcript)
 
     tts_bytes = await tts.synthesize(reply, req.lang)
-    print(f"[VOICE DIAG] TTS result: {'None (browser TTS)' if tts_bytes is None else f'{len(tts_bytes)} bytes'}")
+    logger.debug("voice: tts_bytes=%s", "None (browser TTS)" if tts_bytes is None else len(tts_bytes))
     audio_b64 = base64.b64encode(tts_bytes).decode() if tts_bytes else None
 
     # ── Persist conversation + messages ───────────────────────────────────────

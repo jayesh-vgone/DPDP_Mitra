@@ -19,8 +19,9 @@ from typing import Optional
 from config import settings
 from db.pool import get_pool
 from db import queries
+from limiter import limiter
 from schemas.auth import AuthResponse, InstitutionOut, LoginRequest, RegisterRequest, UserOut
-from middleware.session import SESSION_COOKIE
+from middleware.session import SESSION_COOKIE, clear_session_cookie_header
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -97,7 +98,8 @@ async def register(req: RegisterRequest, response: Response):
 
 
 @router.post("/login", response_model=AuthResponse)
-async def login(req: LoginRequest, response: Response):
+@limiter.limit("5/15minutes")
+async def login(request: Request, req: LoginRequest, response: Response):
     """
     Authenticate with email + password.
 
@@ -181,12 +183,21 @@ async def me(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     pool = get_pool()
-    user_id = await queries.get_session(pool, session_id)
-    if user_id is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired")
+    result = await queries.get_session(pool, session_id)
+    if not result.valid:
+        # Orphaned session (user gone): the row was deleted in get_session; also
+        # clear the now-useless cookie so the browser stops sending it.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired",
+            headers=clear_session_cookie_header() if result.orphaned else None,
+        )
+    user_id = result.user_id
 
     user = await queries.get_user_by_id(pool, user_id)
     if user is None:
+        # Defensive: get_session's JOIN already guarantees the user exists, so
+        # this should be unreachable — kept as a belt-and-suspenders guard.
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
     institution = None

@@ -88,24 +88,64 @@ Already set for you by the Blueprint (no action needed): `APP_ENV=production`,
 
 Save → the service redeploys.
 
-### 2.3 Bootstrap the schema and seed data (one-off)
+### 2.3 Bootstrap the schema and seed data (one-off, **run from your own machine**)
 
 The backend starts fine against an empty database, but tables must exist before requests
-succeed. Open the **dpdp-backend** service → **Shell** tab and run, in order:
+succeed.
 
-```bash
-python scripts/bootstrap_db.py        # creates all tables + pgvector/uuid-ossp extensions
-python scripts/seed_institutions.py    # demo institutions + invite codes (SUNRISE-2024, etc.)
-python scripts/seed_questions.py        # assessment question bank (school/higher_ed/edtech)
-ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-strong-password' python scripts/seed_admin.py
-python scripts/ingest_dpdp.py          # OPTIONAL: RAG embeddings (needs the PDF + COHERE key)
-```
+> ⚠️ **Render's in-dashboard Shell is a paid feature.** On the **free** plan you can't open
+> a shell on the service. The workaround — **no code changes, no paid plan** — is to run the
+> same one-off scripts **locally against the database's External Connection URL** over the
+> public internet. The scripts already read `DATABASE_URL` from the environment, so this is
+> just a matter of pointing them at the remote DB.
+
+**Steps:**
+
+1. In Render → **`dpdp-postgres`** → **Connections**, copy the **External Database URL**
+   (it looks like `postgresql://USER:PASS@HOST.oregon-postgres.render.com/DB`).
+2. On the same page, under **Access Control**, allow your current IP (or temporarily
+   `0.0.0.0/0`) so your laptop can connect. *Tighten or remove this rule when you're done.*
+3. From the repo's **`backend/`** directory, using the same local Python environment you've
+   run the project with (`pip install -r requirements.txt` if you haven't), point
+   `DATABASE_URL` at that external URL and run the setup. **Append `?sslmode=require`** —
+   Render's external endpoint requires TLS and `asyncpg` honors the `sslmode` DSN parameter.
+
+   **Windows (PowerShell):**
+   ```powershell
+   cd backend
+   $env:DATABASE_URL = "postgresql://USER:PASS@HOST.render.com/DB?sslmode=require"
+   $env:ADMIN_EMAIL = "you@example.com"; $env:ADMIN_PASSWORD = "a-strong-password"
+   $env:COHERE_API_KEY = "your_cohere_key"   # only needed for the optional ingest step
+   python scripts/bootstrap_db.py
+   python scripts/seed_institutions.py
+   python scripts/seed_questions.py
+   python scripts/seed_admin.py
+   python scripts/ingest_dpdp.py             # OPTIONAL: RAG embeddings (needs the PDF too)
+   ```
+
+   **macOS / Linux (bash):**
+   ```bash
+   cd backend
+   export DATABASE_URL="postgresql://USER:PASS@HOST.render.com/DB?sslmode=require"
+   python scripts/bootstrap_db.py
+   python scripts/seed_institutions.py
+   python scripts/seed_questions.py
+   ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a-strong-password' python scripts/seed_admin.py
+   COHERE_API_KEY=your_cohere_key python scripts/ingest_dpdp.py   # OPTIONAL
+   ```
 
 - `bootstrap_db.py` runs `CREATE EXTENSION IF NOT EXISTS vector` / `uuid-ossp` — Render's
   default DB user is permitted to do this.
 - All seed scripts are **idempotent** (safe to re-run).
 - If you skip `seed_admin.py` it falls back to `admin@dpdp.in` / `admin12345` — **change
   this for any real deployment** by passing `ADMIN_EMAIL` / `ADMIN_PASSWORD` as shown.
+- This connects to the same managed DB the backend uses, so once it completes the live app
+  has its schema + seed data immediately — nothing to restart.
+
+> **Paid-plan alternative:** if you have Render's Shell, open the **dpdp-backend** service →
+> **Shell** and run the exact same `python scripts/*.py` commands there instead — using the
+> service's built-in internal `DATABASE_URL` (no external URL, no `?sslmode=require`, no
+> Access Control change needed).
 
 ### 2.4 Verify the backend
 
@@ -211,7 +251,7 @@ must list the **exact** scheme+host (`https://eduprivacy.vercel.app`, no trailin
 The proxy approach has no CORS at all.
 
 **`relation "users" does not exist` / 500s on every API call.** You didn't run
-`bootstrap_db.py` (+ seeds) in the Render Shell. Re-run step 2.3.
+`bootstrap_db.py` (+ seeds). Re-run step 2.3 (from your machine against the External DB URL).
 
 **`extension "vector" is not available`.** The DB plan/region doesn't include pgvector.
 Render's managed Postgres supports it on all plans/regions — make sure you created the DB
@@ -225,8 +265,14 @@ eagerly — set `GROQ_API_KEY` and `COHERE_API_KEY` (or temporarily set
 `EMBEDDING_PROVIDER=mock` / `LLM_PROVIDER=mock` to boot without keys, with degraded chat).
 
 **Chat answers aren't citing DPDP sections.** You haven't ingested embeddings — run
-`python scripts/ingest_dpdp.py` in the Render Shell (needs `backend/docs/dpdp_act.pdf` and a
-valid `COHERE_API_KEY`). Embeddings persist in Postgres, so this is a one-off.
+`python scripts/ingest_dpdp.py` (locally against the External DB URL, as in step 2.3; needs
+`backend/docs/dpdp_act.pdf` and a valid `COHERE_API_KEY`). Embeddings persist in Postgres, so
+this is a one-off.
+
+**`asyncpg` can't connect to the external DB / SSL or timeout errors.** Make sure you (a)
+appended `?sslmode=require` to the External URL, and (b) allowed your IP under the DB's
+**Access Control** in Render. The *internal* `DATABASE_URL` (the one the deployed backend
+uses) is **not** reachable from your laptop — you must use the **External** URL for step 2.3.
 
 **I changed `NEXT_PUBLIC_API_URL` but nothing changed.** It's compiled in at build time —
 trigger a **Redeploy** in Vercel.
@@ -237,9 +283,10 @@ trigger a **Redeploy** in Vercel.
 
 - **Code changes:** push to GitHub. Vercel and Render both auto-deploy on push to the
   connected branch.
-- **Schema changes:** re-run `python scripts/bootstrap_db.py` in the Render Shell (it's
-  idempotent; `CREATE TABLE IF NOT EXISTS` won't alter existing tables — for column
-  additions on an existing DB, run the relevant `scripts/migrate_*.py`).
+- **Schema changes:** re-run `python scripts/bootstrap_db.py` locally against the External DB
+  URL (as in step 2.3 — it's idempotent; `CREATE TABLE IF NOT EXISTS` won't alter existing
+  tables, so for column additions on an existing DB run the relevant `scripts/migrate_*.py`
+  the same way).
 - **Rotating secrets:** update them in the Render dashboard → the service redeploys.
 - **Changing the Vercel/backend URL:** update `vercel.json` (backend host) and/or
   `NEXT_PUBLIC_API_URL`, then redeploy the affected service.

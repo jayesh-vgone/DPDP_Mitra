@@ -1,14 +1,14 @@
 import base64
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from schemas.chat import ChatRequest, ChatResponse, MessageOut
 from providers.llm.factory import get_llm_provider
 from providers.tts.factory import get_tts_provider
 from prompts import build_system_prompt
 from retrieval import retrieve_chunks
-from guardrails import check_injection, check_output_scope
+from guardrails import check_injection, check_output_scope, check_citation_grounding
 from db.pool import get_pool
 from db import queries
 from middleware.session import get_session_user
@@ -49,6 +49,11 @@ async def chat(req: ChatRequest, user_id: str = Depends(get_session_user)):
     pool = get_pool()
 
     await queries.ensure_user(pool, user_id)
+
+    # Ownership check: if a conversation_id is supplied, it must belong to this user.
+    # A 404 (not 403) prevents revealing whether a conversation UUID exists at all.
+    if req.conversation_id and not await queries.check_conversation_ownership(pool, req.conversation_id, user_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
     trimmed = req.message.strip()
 
@@ -145,6 +150,9 @@ async def chat(req: ChatRequest, user_id: str = Depends(get_session_user)):
     scope_refusal = check_output_scope(trimmed, reply, req.lang)
     if scope_refusal:
         reply = scope_refusal
+    else:
+        # ── Layer 4: citation grounding check (log-only, never blocks) ────────
+        check_citation_grounding(reply, chunks, trimmed)
 
     tts_bytes = await tts.synthesize(reply, req.lang)
     audio_b64 = base64.b64encode(tts_bytes).decode() if tts_bytes else None

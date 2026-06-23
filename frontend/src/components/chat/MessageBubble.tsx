@@ -1,9 +1,14 @@
 'use client';
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { Mic } from 'lucide-react';
 import type { Message } from '@/lib/types';
+
+// react-markdown + remark-gfm are lazy-loaded into a separate chunk so they
+// are not part of the initial /chat route bundle. The Suspense fallback renders
+// the raw message text while the chunk loads (typically imperceptible).
+const MarkdownContent = dynamic(() => import('./MarkdownContent'), { ssr: false });
 
 interface MessageBubbleProps {
   message: Message;
@@ -58,24 +63,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             </div>
           )}
           <div className="assistant-content text-sm text-[#111827] dark:text-gray-200 leading-relaxed">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                strong: ({ children }) => (
-                  <strong className="text-[#4F46E5] font-semibold">{children}</strong>
-                ),
-                p: ({ children }) => <p>{children}</p>,
-                ul: ({ children }) => (
-                  <ul className="list-disc list-inside">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="list-decimal list-inside">{children}</ol>
-                ),
-                li: ({ children }) => <li>{children}</li>,
-              }}
+            <Suspense
+              fallback={
+                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  {message.content}
+                </p>
+              }
             >
-              {message.content}
-            </ReactMarkdown>
+              <MarkdownContent content={message.content} />
+            </Suspense>
           </div>
         </div>
         <p className="text-xs text-[#9CA3AF] mt-1 ml-1">{formatTime(message.created_at)}</p>

@@ -1,6 +1,9 @@
 import io
+import logging
 from groq import AsyncGroq
 from .base import STTProvider
+
+logger = logging.getLogger(__name__)
 
 # Groq Whisper language codes
 _LANG_MAP = {"en": "en", "hi": "hi"}
@@ -15,7 +18,7 @@ class GroqSTT(STTProvider):
         language = _LANG_MAP.get(lang, "en")
         file_obj = io.BytesIO(audio_bytes)
         file_obj.name = f"audio.{audio_format}"
-        print(f"[VOICE DIAG] Groq STT call — filename: audio.{audio_format} | content-type: audio/{audio_format} | bytes: {len(audio_bytes)} | language hint: {language}")
+        logger.debug("groq_stt: format=%s bytes=%d lang_hint=%s", audio_format, len(audio_bytes), language)
 
         try:
             transcription = await self._client.audio.transcriptions.create(
@@ -24,8 +27,7 @@ class GroqSTT(STTProvider):
                 language=language,
                 prompt="DPDP Act digital personal data protection",
             )
-            print(f"[VOICE DIAG] Groq STT raw response: {repr(transcription.text)}")
             return transcription.text.strip()
         except Exception as e:
-            print(f"[VOICE DIAG] Groq STT ERROR: {type(e).__name__}: {e}")
+            logger.error("groq_stt: transcription failed: %s: %s", type(e).__name__, e)
             raise
