@@ -21,6 +21,7 @@ SKIP_PREFIXES = (
     "/assessment",
     "/profile",
     "/action-items",
+    "/internal-audit",
 )
 
 

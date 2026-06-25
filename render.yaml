@@ -1,27 +1,23 @@
-# Render Blueprint — backend (FastAPI) + managed Postgres (with pgvector).
-# Deploy via the Render dashboard: New → Blueprint → point at this repo.
-# After the first deploy, open the backend service Shell and run the DB
-# bootstrap + seed scripts (see DEPLOY.md).
+# Render Blueprint — backend (FastAPI)
+# Database: Supabase Postgres (already provisioned — NOT managed by Render)
 #
-# Secrets marked `sync: false` are NOT stored in git — set them in the Render
-# dashboard (Environment tab) after the Blueprint is created:
-#   GROQ_API_KEY, COHERE_API_KEY, CORS_ORIGINS
+# Deploy via Render dashboard: New → Blueprint → point at this repo.
+# See DEPLOYMENT.md for the full step-by-step guide.
 #
-# CORS_ORIGINS must be set to your Vercel frontend URL once it exists, e.g.
-#   https://eduprivacy.vercel.app
-# (only relevant if you call the backend cross-origin directly; the recommended
-#  Vercel rewrite/proxy in DEPLOY.md makes requests same-origin so CORS is moot.)
-
-databases:
-  - name: dpdp-postgres
-    plan: free               # free Postgres expires after 30 days — upgrade for real use
-    postgresMajorVersion: "16"
+# Secrets marked `sync: false` must be set manually in the Render dashboard
+# (Environment tab of the dpdp-backend service) after the Blueprint is created.
+#
+#   DATABASE_URL       — Supabase direct connection string (see DEPLOYMENT.md §3)
+#   GROQ_API_KEY       — from console.groq.com
+#   COHERE_API_KEY     — from cohere.com
+#   CORS_ORIGINS       — your Vercel frontend URL (https://<app>.vercel.app)
+#   RESEND_API_KEY     — from resend.com (leave unset until a sending domain is verified)
 
 services:
   - type: web
     name: dpdp-backend
     runtime: python
-    plan: free               # free web service spins down after ~15 min idle (cold start ~1 min)
+    plan: free               # free tier spins down after ~15 min idle; cold start ~60 s
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
@@ -30,19 +26,19 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.9"
       - key: DATABASE_URL
-        fromDatabase:
-          name: dpdp-postgres
-          property: connectionString
+        sync: false           # Supabase direct connection string — set in Render dashboard
       - key: APP_ENV
         value: production
-      # Cross-site session cookies require SameSite=None + Secure so the browser
-      # sends them on credentialed fetch() from the Vercel frontend.
+      # Cross-site session cookies: SameSite=None + Secure so the browser sends them
+      # on credentialed fetch() from the Vercel frontend (different domain).
+      # With the recommended Vercel /api rewrite-proxy these are also correct —
+      # the cookie is stored under the Vercel domain but SameSite=None is harmless.
       - key: COOKIE_SECURE
         value: "true"
       - key: COOKIE_SAMESITE
         value: none
       - key: JWT_SECRET
-        generateValue: true   # reserved future hook; a strong random value is fine
+        generateValue: true   # reserved future hook (third-party Bearer-token auth)
       - key: LLM_PROVIDER
         value: groq
       - key: STT_PROVIDER
@@ -51,9 +47,15 @@ services:
         value: browser
       - key: EMBEDDING_PROVIDER
         value: cohere
+      # Email OTP: currently disabled — flip to true once a Resend sending domain is
+      # verified and the `from` address in backend/providers/email_sender.py is updated.
+      - key: EMAIL_VERIFICATION_ENABLED
+        value: "false"
       - key: GROQ_API_KEY
-        sync: false           # set in the Render dashboard
+        sync: false
       - key: COHERE_API_KEY
-        sync: false           # set in the Render dashboard
+        sync: false
       - key: CORS_ORIGINS
-        sync: false           # set to your Vercel URL (https://<app>.vercel.app)
+        sync: false           # set to your Vercel URL, e.g. https://eduprivacy.vercel.app
+      - key: RESEND_API_KEY
+        sync: false           # leave unset until a Resend sending domain is verified
