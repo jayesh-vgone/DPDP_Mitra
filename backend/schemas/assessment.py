@@ -41,6 +41,12 @@ class AttemptOut(BaseModel):
 class ScoresResponse(BaseModel):
     latest: Optional[AttemptOut]
     history: list[AttemptOut]
+    # Merged current scores from institution_category_scores (Section 4).
+    # These may differ from latest.category_scores when an internal audit has
+    # patched specific categories since the last full assessment. Null when no
+    # assessment has been completed yet (same condition as latest == null).
+    current_scores: Optional[dict[str, float]] = None
+    current_overall: Optional[float] = None
 
 
 class SubmitResponse(BaseModel):

@@ -10,6 +10,7 @@ from limiter import limiter
 from middleware.auth import AuthMiddleware
 from routers import (
     health, chat, voice, conversations, auth, assessment, profile, admin, action_items,
+    internal_audit,
 )
 
 
@@ -63,3 +64,4 @@ app.include_router(assessment.router)
 app.include_router(profile.router)
 app.include_router(admin.router)
 app.include_router(action_items.router)
+app.include_router(internal_audit.router)

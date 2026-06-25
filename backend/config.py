@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     embedding_provider: str = "mock"
     cohere_api_key: Optional[str] = None
 
+    resend_api_key: Optional[str] = None
+    email_verification_enabled: bool = False
+
     database_url: Optional[str] = None
 
     cors_origins: str = "http://localhost:3000"

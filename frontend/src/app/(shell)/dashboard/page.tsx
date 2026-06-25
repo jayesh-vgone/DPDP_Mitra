@@ -10,16 +10,18 @@ import {
   ListTodo,
   CalendarClock,
   Gauge,
+  SearchCheck,
 } from 'lucide-react';
 import {
   getAssessmentScores,
   getActionItems,
   downloadAssessmentReport,
+  getInternalAuditStatus,
 } from '@/lib/api';
-import type { ScoresResponse, AttemptOut, ActionItem } from '@/lib/types';
+import type { ScoresResponse, AttemptOut, ActionItem, InternalAuditStatus } from '@/lib/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
-import { t } from '@/lib/translations';
+import { t, RISK_CATEGORY_HI } from '@/lib/translations';
 import { ComplianceScore } from '@/components/dashboard/ComplianceScore';
 import { CategoryTable } from '@/components/dashboard/CategoryTable';
 import { ActionQueue } from '@/components/dashboard/ActionQueue';
@@ -281,20 +283,58 @@ function LiveDashboard({
   );
 }
 
+// ── Overdue audit banner ──────────────────────────────────────────────────────
+// Non-dismissible: always rendered when is_due=true and days_overdue > 0.
+// Reappears on every dashboard load while the condition holds.
+function AuditOverdueBanner({ auditStatus, lang }: { auditStatus: InternalAuditStatus; lang: string }) {
+  if (!auditStatus.is_due || auditStatus.days_overdue === 0) return null;
+
+  const catsText = auditStatus.target_categories
+    .map((cat) => (lang === 'hi' ? (RISK_CATEGORY_HI[cat] ?? cat) : cat))
+    .join(', ');
+
+  const body = t('auditBannerBody', lang as 'en' | 'hi')
+    .replace('{n}', String(auditStatus.days_overdue))
+    .replace('{cats}', catsText || '—');
+
+  return (
+    <div className="mx-8 mt-6 flex items-center gap-4 px-5 py-4 rounded-2xl bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/30">
+      <div className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center bg-amber-100 dark:bg-amber-900/30">
+        <SearchCheck size={18} className="text-amber-600 dark:text-amber-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+          {t('auditBannerTitle', lang as 'en' | 'hi')}
+        </p>
+        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 truncate">{body}</p>
+      </div>
+      <Link
+        href="/internal-audit"
+        className="shrink-0 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:underline whitespace-nowrap"
+      >
+        {t('auditBannerCta', lang as 'en' | 'hi')}
+      </Link>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { lang } = useLanguage();
   const [scores, setScores] = useState<ScoresResponse | null>(null);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
+  const [auditStatus, setAuditStatus] = useState<InternalAuditStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      getAssessmentScores().catch(() => ({ latest: null, history: [] }) as ScoresResponse),
+      getAssessmentScores().catch(() => ({ latest: null, history: [], current_scores: null, current_overall: null }) as ScoresResponse),
       getActionItems().catch(() => [] as ActionItem[]),
+      getInternalAuditStatus().catch(() => null),
     ])
-      .then(([s, a]) => {
+      .then(([s, a, audit]) => {
         setScores(s);
         setActionItems(a);
+        setAuditStatus(audit);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -328,7 +368,10 @@ export default function DashboardPage() {
       )}
 
       {!loading && scores?.latest && (
-        <LiveDashboard scores={scores} actionItems={actionItems} setActionItems={setActionItems} />
+        <>
+          {auditStatus && <AuditOverdueBanner auditStatus={auditStatus} lang={lang} />}
+          <LiveDashboard scores={scores} actionItems={actionItems} setActionItems={setActionItems} />
+        </>
       )}
     </div>
   );

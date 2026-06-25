@@ -1,5 +1,6 @@
 import type {
   AuthResponse,
+  RegisterPendingResponse,
   ChatRequest,
   ChatResponse,
   Conversation,
@@ -25,6 +26,11 @@ import type {
   QuestionUpdate,
   QuestionCreate,
   InstitutionCategory,
+  InternalAuditStatus,
+  AuditStartResponse,
+  AuditSubmitRequest,
+  AuditSubmitResponse,
+  AuditHistoryItem,
 } from './types';
 import {
   mockSendChat,
@@ -64,8 +70,27 @@ export async function authRegister(payload: {
   admin_name: string;
   email: string;
   password: string;
+}): Promise<AuthResponse | RegisterPendingResponse> {
+  return apiFetch<AuthResponse | RegisterPendingResponse>('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function verifyOtp(payload: {
+  email: string;
+  otp: string;
 }): Promise<AuthResponse> {
-  return apiFetch<AuthResponse>('/auth/register', {
+  return apiFetch<AuthResponse>('/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function resendOtp(payload: {
+  email: string;
+}): Promise<{ message: string; retry_after_seconds: number }> {
+  return apiFetch<{ message: string; retry_after_seconds: number }>('/auth/resend-otp', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -252,6 +277,27 @@ export async function updateActionItem(
 
 export async function deleteActionItem(id: string): Promise<void> {
   await apiFetch<void>(`/action-items/${id}`, { method: 'DELETE' });
+}
+
+// ── Internal Audit endpoints ───────────────────────────────────────────────────
+
+export async function getInternalAuditStatus(): Promise<InternalAuditStatus> {
+  return apiFetch<InternalAuditStatus>('/internal-audit/status');
+}
+
+export async function startInternalAudit(): Promise<AuditStartResponse> {
+  return apiFetch<AuditStartResponse>('/internal-audit/start', { method: 'POST' });
+}
+
+export async function submitInternalAudit(payload: AuditSubmitRequest): Promise<AuditSubmitResponse> {
+  return apiFetch<AuditSubmitResponse>('/internal-audit/submit', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getInternalAuditHistory(): Promise<AuditHistoryItem[]> {
+  return apiFetch<AuditHistoryItem[]>('/internal-audit/history');
 }
 
 export async function downloadAssessmentReport(attemptId: string): Promise<void> {

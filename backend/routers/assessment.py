@@ -12,6 +12,8 @@ Endpoints:
 """
 
 import asyncio
+import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
@@ -32,6 +34,8 @@ from scoring import (
     CATEGORY_SLUGS, get_category_explanation,
 )
 from action_items import generate_action_items
+
+AUDIT_CADENCE_DAYS = 90
 
 router = APIRouter(prefix="/assessment", tags=["assessment"])
 
@@ -173,6 +177,41 @@ async def submit_assessment(
         items=generated,
     )
 
+    # Update the single source-of-truth for current category scores (Section 4).
+    # All 8 categories are overwritten because a full assessment covers everything.
+    await queries.upsert_category_scores(
+        pool,
+        institution_id=institution["id"],
+        category_scores=result["category_scores"],
+        source_type="assessment",
+        source_id=attempt_id,
+    )
+
+    # Ensure an Internal Audit cycle exists for this institution.
+    # Rule: only the very first assessment creates the first cycle (cycle 1).
+    # Subsequent full assessments do NOT alter an existing pending cycle's
+    # due_date or target_categories — the open cycle is left exactly as-is.
+    existing_audit = await queries.get_current_internal_audit(pool, institution["id"])
+    if existing_audit is None:
+        # No open cycle at all — check whether any cycle has ever existed.
+        history = await queries.get_audit_history(pool, institution["id"])
+        if not history:
+            # This is the institution's very first assessment: create cycle 1.
+            target_cats = [
+                cat for cat, score in result["category_scores"].items()
+                if score_label(score) != "Good"
+            ]
+            due_date = (datetime.datetime.utcnow() + datetime.timedelta(days=AUDIT_CADENCE_DAYS)).date()
+            await queries.create_internal_audit(
+                pool,
+                institution_id=institution["id"],
+                sequence_number=1,
+                triggered_by_type="assessment",
+                triggered_by_id=attempt_id,
+                target_categories=target_cats,
+                due_date=due_date,
+            )
+
     return SubmitResponse(
         attempt_id=attempt_id,
         overall_score=result["overall_score"],
@@ -281,7 +320,17 @@ async def get_scores(user_id: str = Depends(get_session_user)):
     def to_out(a: dict) -> AttemptOut:
         return AttemptOut(**a)
 
+    # Fetch the merged current category scores (patched by internal audits).
+    current_scores = await queries.get_institution_current_scores(pool, institution["id"])
+    current_overall: float | None = None
+    if current_scores:
+        from scoring import RISK_CATEGORIES as _RISK_CATEGORIES
+        vals = [current_scores.get(cat, 0.0) for cat in _RISK_CATEGORIES]
+        current_overall = round(sum(vals) / len(_RISK_CATEGORIES), 2)
+
     return ScoresResponse(
         latest=to_out(data["latest"]) if data["latest"] else None,
         history=[to_out(a) for a in data["history"]],
+        current_scores=current_scores,
+        current_overall=current_overall,
     )

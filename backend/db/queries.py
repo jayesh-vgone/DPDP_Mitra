@@ -219,6 +219,7 @@ async def get_user_by_email(pool: asyncpg.Pool, email: str) -> Optional[dict]:
     )
     if row is None:
         return None
+    keys = set(row.keys())
     return {
         "id": row["id"],
         "display_name": row["display_name"],
@@ -227,6 +228,7 @@ async def get_user_by_email(pool: asyncpg.Pool, email: str) -> Optional[dict]:
         "institution_id": str(row["institution_id"]) if row["institution_id"] else None,
         "role": row["role"],
         "language": row["language"],
+        "email_verified": bool(row["email_verified"]) if "email_verified" in keys else True,
     }
 
 
@@ -237,6 +239,7 @@ async def get_user_by_id(pool: asyncpg.Pool, user_id: str) -> Optional[dict]:
     )
     if row is None:
         return None
+    keys = set(row.keys())
     return {
         "id": row["id"],
         "display_name": row["display_name"],
@@ -244,6 +247,7 @@ async def get_user_by_id(pool: asyncpg.Pool, user_id: str) -> Optional[dict]:
         "institution_id": str(row["institution_id"]) if row["institution_id"] else None,
         "role": row["role"],
         "language": row["language"],
+        "email_verified": bool(row["email_verified"]) if "email_verified" in keys else True,
     }
 
 
@@ -280,6 +284,150 @@ async def update_user_password(pool: asyncpg.Pool, user_id: str, new_hash: str) 
     await pool.execute(
         "UPDATE users SET password_hash = $1 WHERE id = $2",
         new_hash, user_id,
+    )
+
+
+async def set_email_verified(pool: asyncpg.Pool, user_id: str) -> None:
+    """Mark a user's email as verified."""
+    await pool.execute(
+        "UPDATE users SET email_verified = true WHERE id = $1",
+        user_id,
+    )
+
+
+# ── Email OTPs ─────────────────────────────────────────────────────────────────
+
+OTP_EXPIRY_MINUTES = 10
+OTP_MAX_ATTEMPTS = 5
+OTP_RESEND_COOLDOWN_SECONDS = 60
+
+
+async def create_otp(
+    pool: asyncpg.Pool,
+    user_id: str,
+    purpose: str,
+    otp_hash: str,
+) -> str:
+    """
+    Invalidate any live (unconsumed, unexpired) OTP for this user+purpose, then
+    insert a new one.  Returns the new OTP row id.
+
+    Invalidation is done by setting expires_at = now() on existing rows so that
+    get_live_otp() (which checks expires_at > now()) will no longer find them.
+    """
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=OTP_EXPIRY_MINUTES)
+
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Invalidate previous live OTPs for this user+purpose
+            await conn.execute(
+                """
+                UPDATE email_otps
+                SET expires_at = $1
+                WHERE user_id = $2
+                  AND purpose  = $3
+                  AND consumed_at IS NULL
+                  AND expires_at > $1
+                """,
+                now, user_id, purpose,
+            )
+            row = await conn.fetchrow(
+                """
+                INSERT INTO email_otps
+                    (user_id, purpose, otp_hash, expires_at)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id
+                """,
+                user_id, purpose, otp_hash, expires_at,
+            )
+    return str(row["id"])
+
+
+async def get_live_otp(
+    pool: asyncpg.Pool,
+    user_id: str,
+    purpose: str,
+) -> Optional[dict]:
+    """
+    Return the live (unconsumed, unexpired) OTP row for this user+purpose, or None.
+    'Live' means consumed_at IS NULL AND expires_at > now().
+    """
+    row = await pool.fetchrow(
+        """
+        SELECT id, otp_hash, expires_at, attempts_count, created_at
+        FROM email_otps
+        WHERE user_id    = $1
+          AND purpose     = $2
+          AND consumed_at IS NULL
+          AND expires_at  > now()
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        user_id, purpose,
+    )
+    if row is None:
+        return None
+    return {
+        "id": str(row["id"]),
+        "otp_hash": row["otp_hash"],
+        "expires_at": row["expires_at"],
+        "attempts_count": row["attempts_count"],
+        "created_at": row["created_at"],
+    }
+
+
+async def get_latest_otp_created_at(
+    pool: asyncpg.Pool,
+    user_id: str,
+    purpose: str,
+) -> Optional[datetime]:
+    """
+    Return the created_at of the most recent OTP for this user+purpose (consumed or
+    not, expired or not).  Used to enforce the resend cooldown.
+    """
+    row = await pool.fetchrow(
+        """
+        SELECT created_at FROM email_otps
+        WHERE user_id = $1 AND purpose = $2
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        user_id, purpose,
+    )
+    return row["created_at"] if row else None
+
+
+async def increment_otp_attempts(
+    pool: asyncpg.Pool,
+    otp_id: str,
+) -> int:
+    """Increment attempts_count and return the new value."""
+    row = await pool.fetchrow(
+        """
+        UPDATE email_otps
+        SET attempts_count = attempts_count + 1
+        WHERE id = $1::uuid
+        RETURNING attempts_count
+        """,
+        otp_id,
+    )
+    return row["attempts_count"] if row else 0
+
+
+async def consume_otp(pool: asyncpg.Pool, otp_id: str) -> None:
+    """Mark an OTP as consumed (successfully verified)."""
+    await pool.execute(
+        "UPDATE email_otps SET consumed_at = now() WHERE id = $1::uuid",
+        otp_id,
+    )
+
+
+async def invalidate_otp(pool: asyncpg.Pool, otp_id: str) -> None:
+    """Immediately expire an OTP (e.g. when max attempts exceeded)."""
+    await pool.execute(
+        "UPDATE email_otps SET expires_at = now() WHERE id = $1::uuid",
+        otp_id,
     )
 
 
@@ -1307,3 +1455,279 @@ async def admin_create_question(
         weight, next_idx, answer_type,
     )
     return _admin_question_to_dict(row)
+
+
+# ── Institution category scores (single source of truth) ─────────────────────
+
+async def upsert_category_scores(
+    pool: asyncpg.Pool,
+    institution_id: str,
+    category_scores: dict[str, float],
+    source_type: str,   # 'assessment' | 'internal_audit'
+    source_id: str,
+    categories_to_update: Optional[list[str]] = None,
+) -> None:
+    """
+    Upsert per-category scores into institution_category_scores.
+
+    When categories_to_update is None, all keys in category_scores are written
+    (used by assessment completion — overwrites all 8 categories).
+    When a list is given, only those categories are written (used by internal
+    audit completion — leaves other categories' scores untouched).
+    """
+    import json as _json
+    targets = categories_to_update if categories_to_update is not None else list(category_scores.keys())
+    now = datetime.now(timezone.utc)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            for cat in targets:
+                score = category_scores.get(cat)
+                if score is None:
+                    continue
+                await conn.execute("""
+                    INSERT INTO institution_category_scores
+                        (institution_id, category, current_score, source_type, source_id, last_updated_at)
+                    VALUES ($1::uuid, $2, $3, $4, $5::uuid, $6)
+                    ON CONFLICT (institution_id, category) DO UPDATE
+                        SET current_score   = EXCLUDED.current_score,
+                            source_type     = EXCLUDED.source_type,
+                            source_id       = EXCLUDED.source_id,
+                            last_updated_at = EXCLUDED.last_updated_at
+                """, institution_id, cat, float(score), source_type, source_id, now)
+
+
+async def get_institution_current_scores(
+    pool: asyncpg.Pool, institution_id: str
+) -> Optional[dict[str, float]]:
+    """
+    Return current per-category scores from institution_category_scores.
+    Returns None if no scores exist yet (no completed assessment).
+    """
+    rows = await pool.fetch("""
+        SELECT category, current_score
+        FROM institution_category_scores
+        WHERE institution_id = $1::uuid
+    """, institution_id)
+    if not rows:
+        return None
+    return {r["category"]: float(r["current_score"]) for r in rows}
+
+
+# ── Internal Audits ───────────────────────────────────────────────────────────
+
+def _audit_to_dict(row) -> dict:
+    import json as _json
+    cats = row["target_categories"]
+    if isinstance(cats, str):
+        cats = _json.loads(cats)
+    snap = row["audit_score_snapshot"] if "audit_score_snapshot" in row.keys() else None
+    if isinstance(snap, str) and snap:
+        snap = _json.loads(snap)
+    return {
+        "id": str(row["id"]),
+        "institution_id": str(row["institution_id"]),
+        "sequence_number": row["sequence_number"],
+        "triggered_by_type": row["triggered_by_type"],
+        "triggered_by_id": str(row["triggered_by_id"]),
+        "target_categories": cats if isinstance(cats, list) else [],
+        "due_date": row["due_date"],   # date object
+        "status": row["status"],
+        "started_at": row["started_at"],
+        "completed_at": row["completed_at"],
+        "audit_score_snapshot": snap,
+        "created_at": row["created_at"],
+    }
+
+
+async def get_current_internal_audit(
+    pool: asyncpg.Pool, institution_id: str
+) -> Optional[dict]:
+    """
+    Return the most recent non-completed internal_audits row for an institution.
+    'Current cycle' = the row with the highest sequence_number that is not completed.
+    Returns None if no pending/in_progress cycle exists.
+    """
+    row = await pool.fetchrow("""
+        SELECT id, institution_id, sequence_number, triggered_by_type,
+               triggered_by_id, target_categories, due_date, status,
+               started_at, completed_at, audit_score_snapshot, created_at
+        FROM internal_audits
+        WHERE institution_id = $1::uuid
+          AND status != 'completed'
+        ORDER BY sequence_number DESC
+        LIMIT 1
+    """, institution_id)
+    return None if row is None else _audit_to_dict(row)
+
+
+async def get_audit_history(
+    pool: asyncpg.Pool, institution_id: str
+) -> list[dict]:
+    """Return all completed internal_audits rows for an institution, most recent first."""
+    rows = await pool.fetch("""
+        SELECT id, institution_id, sequence_number, triggered_by_type,
+               triggered_by_id, target_categories, due_date, status,
+               started_at, completed_at, audit_score_snapshot, created_at
+        FROM internal_audits
+        WHERE institution_id = $1::uuid
+          AND status = 'completed'
+        ORDER BY sequence_number DESC
+    """, institution_id)
+    return [_audit_to_dict(r) for r in rows]
+
+
+async def create_internal_audit(
+    pool: asyncpg.Pool,
+    institution_id: str,
+    sequence_number: int,
+    triggered_by_type: str,
+    triggered_by_id: str,
+    target_categories: list[str],
+    due_date,
+) -> str:
+    """Create a new internal_audits row and return its UUID string."""
+    import json as _json
+    row = await pool.fetchrow("""
+        INSERT INTO internal_audits
+            (institution_id, sequence_number, triggered_by_type,
+             triggered_by_id, target_categories, due_date, status)
+        VALUES ($1::uuid, $2, $3, $4::uuid, $5::jsonb, $6, 'pending')
+        RETURNING id
+    """,
+        institution_id,
+        sequence_number,
+        triggered_by_type,
+        triggered_by_id,
+        _json.dumps(target_categories),
+        due_date,
+    )
+    return str(row["id"])
+
+
+async def start_internal_audit(pool: asyncpg.Pool, audit_id: str) -> None:
+    """Transition an audit from pending to in_progress."""
+    await pool.execute("""
+        UPDATE internal_audits
+        SET status = 'in_progress', started_at = now(), updated_at = now()
+        WHERE id = $1::uuid AND status = 'pending'
+    """, audit_id)
+
+
+async def complete_internal_audit(
+    pool: asyncpg.Pool,
+    audit_id: str,
+    audit_score_snapshot: dict[str, float],
+) -> None:
+    """Mark an audit as completed and store the per-category score snapshot."""
+    import json as _json
+    await pool.execute("""
+        UPDATE internal_audits
+        SET status = 'completed',
+            completed_at = now(),
+            audit_score_snapshot = $2::jsonb,
+            updated_at = now()
+        WHERE id = $1::uuid
+    """, audit_id, _json.dumps(audit_score_snapshot))
+
+
+async def create_internal_audit_responses(
+    pool: asyncpg.Pool,
+    audit_id: str,
+    responses: list[dict],  # [{question_id, answer_value}, ...]
+) -> None:
+    """Bulk-insert responses for one internal audit."""
+    await pool.executemany("""
+        INSERT INTO internal_audit_responses (internal_audit_id, question_id, answer_value)
+        VALUES ($1::uuid, $2::uuid, $3)
+    """, [(audit_id, r["question_id"], r["answer_value"]) for r in responses])
+
+
+async def get_questions_for_categories(
+    pool: asyncpg.Pool,
+    institution_category: str,
+    target_categories: list[str],
+) -> list[dict]:
+    """
+    Return active questions for a specific institution_category filtered to
+    the given risk categories (used by the internal audit wizard).
+    """
+    if not target_categories:
+        return []
+    rows = await pool.fetch("""
+        SELECT id, institution_category, category, question_text,
+               dpdp_section, weight, order_index, answer_type
+        FROM assessment_questions
+        WHERE institution_category = $1
+          AND is_active = true
+          AND category = ANY($2::text[])
+        ORDER BY order_index ASC
+    """, institution_category, target_categories)
+    return [
+        {
+            "id": str(r["id"]),
+            "institution_category": r["institution_category"],
+            "category": r["category"],
+            "question_text": r["question_text"],
+            "dpdp_section": r["dpdp_section"],
+            "weight": float(r["weight"]),
+            "order_index": r["order_index"],
+            "answer_type": r["answer_type"],
+        }
+        for r in rows
+    ]
+
+
+async def get_next_audit_sequence_number(
+    pool: asyncpg.Pool, institution_id: str
+) -> int:
+    """Return the next sequence_number for a new internal audit (max + 1)."""
+    val = await pool.fetchval("""
+        SELECT COALESCE(MAX(sequence_number), 0) + 1
+        FROM internal_audits
+        WHERE institution_id = $1::uuid
+    """, institution_id)
+    return int(val)
+
+
+async def regenerate_auto_action_items_scoped(
+    pool: asyncpg.Pool,
+    institution_id: str,
+    items: list[dict],
+    target_categories: list[str],
+) -> None:
+    """
+    Replace AUTO-generated action items only for the given target_categories.
+
+    Unlike regenerate_auto_action_items() (which replaces ALL auto items),
+    this version only deletes auto items whose category is in target_categories,
+    then inserts a fresh set — leaving action items for other categories untouched.
+    Used by internal audit completion so that manual edits to non-audited categories
+    survive the regeneration.
+    """
+    if not target_categories:
+        return
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute("""
+                DELETE FROM action_items
+                WHERE institution_id = $1::uuid
+                  AND is_custom = false
+                  AND category = ANY($2::text[])
+            """, institution_id, target_categories)
+            if items:
+                await conn.executemany("""
+                    INSERT INTO action_items
+                        (institution_id, category, task_text, priority, priority_level,
+                         effort_estimate, status, is_custom)
+                    VALUES ($1::uuid, $2, $3, $4, $5, $6, 'not_started', false)
+                """, [
+                    (
+                        institution_id,
+                        it["category"],
+                        it["task_text"],
+                        it["priority"],
+                        it["priority_level"],
+                        it.get("effort_estimate"),
+                    )
+                    for it in items
+                ])

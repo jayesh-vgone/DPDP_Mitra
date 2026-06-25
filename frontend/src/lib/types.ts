@@ -11,6 +11,7 @@ export interface AuthUser {
   institution_id: string | null;
   role: string;
   language: Language;
+  email_verified: boolean;
 }
 
 export interface AuthInstitution {
@@ -33,6 +34,11 @@ export interface AuthInstitution {
 export interface AuthResponse {
   user: AuthUser;
   institution: AuthInstitution;
+}
+
+export interface RegisterPendingResponse {
+  email: string;
+  message: string;
 }
 
 export interface Message {
@@ -215,6 +221,51 @@ export interface AttemptOut {
 export interface ScoresResponse {
   latest: AttemptOut | null;
   history: AttemptOut[];
+  // Merged current scores from institution_category_scores (may differ from
+  // latest.category_scores when an internal audit has patched specific categories).
+  current_scores: Record<string, number> | null;
+  current_overall: number | null;
+}
+
+// ── Internal Audit ────────────────────────────────────────────────────────────
+
+export interface InternalAuditStatus {
+  status: 'not_applicable' | 'pending' | 'in_progress' | 'completed';
+  sequence_number: number | null;
+  due_date: string | null;       // ISO date string YYYY-MM-DD
+  is_due: boolean;
+  days_overdue: number;
+  can_start: boolean;
+  target_categories: string[];
+}
+
+export interface AuditStartResponse {
+  audit_id: string;
+  sequence_number: number;
+  target_categories: string[];
+  questions: QuestionOut[];
+}
+
+export interface AuditSubmitRequest {
+  responses: ResponseIn[];
+}
+
+export interface AuditSubmitResponse {
+  audit_id: string;
+  sequence_number: number;
+  category_scores: Record<string, number>;
+  overall_score: number;
+  next_due_date: string;
+  next_sequence_number: number;
+}
+
+export interface AuditHistoryItem {
+  id: string;
+  sequence_number: number;
+  completed_at: string;
+  target_categories: string[];
+  audit_score_snapshot: Record<string, number>;
+  triggered_by_type: 'assessment' | 'internal_audit';
 }
 
 export interface SubmitResponse {

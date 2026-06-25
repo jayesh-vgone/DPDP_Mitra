@@ -47,8 +47,14 @@ export default function RegisterPage() {
         email,
         password,
       });
-      setAuth(data.user, data.institution);
-      router.replace('/dashboard');
+      if ('user' in data) {
+        // EMAIL_VERIFICATION_ENABLED=false: session issued immediately
+        setAuth(data.user, data.institution);
+        router.replace('/dashboard');
+      } else {
+        // EMAIL_VERIFICATION_ENABLED=true: OTP was sent, redirect to verify screen
+        router.replace(`/verify-otp?email=${encodeURIComponent(data.email)}`);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('400') && msg.toLowerCase().includes('invite')) {

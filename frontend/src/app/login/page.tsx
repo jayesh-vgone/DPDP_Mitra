@@ -19,10 +19,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
+    setUnverifiedEmail('');
     setLoading(true);
     try {
       const data = await authLogin({ email, password });
@@ -30,7 +32,10 @@ export default function LoginPage() {
       router.replace('/dashboard');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('401') || msg.toLowerCase().includes('incorrect')) {
+      if (msg.includes('403') && msg.includes('EMAIL_NOT_VERIFIED')) {
+        setUnverifiedEmail(email);
+        setError(t('otpEmailNotVerified', lang));
+      } else if (msg.includes('401') || msg.toLowerCase().includes('incorrect')) {
         setError(t('invalidCreds', lang));
       } else {
         setError(msg || 'Something went wrong.');
@@ -65,6 +70,17 @@ export default function LoginPage() {
           {error && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
+              {unverifiedEmail && (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/verify-otp?email=${encodeURIComponent(unverifiedEmail)}&resend=1`)}
+                    className="font-semibold underline hover:no-underline"
+                  >
+                    {t('otpGoToVerify', lang)}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

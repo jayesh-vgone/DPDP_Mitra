@@ -31,6 +31,23 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str
+
+    @field_validator("otp")
+    @classmethod
+    def otp_format(cls, v: str) -> str:
+        v = v.strip()
+        if not v.isdigit() or len(v) != 6:
+            raise ValueError("OTP must be a 6-digit numeric code")
+        return v
+
+
+class ResendOtpRequest(BaseModel):
+    email: EmailStr
+
+
 class UserOut(BaseModel):
     id: str
     display_name: Optional[str]
@@ -38,6 +55,7 @@ class UserOut(BaseModel):
     institution_id: Optional[str]
     role: str
     language: str
+    email_verified: bool = True
 
 
 class InstitutionOut(BaseModel):
@@ -61,3 +79,12 @@ class InstitutionOut(BaseModel):
 class AuthResponse(BaseModel):
     user: UserOut
     institution: InstitutionOut
+
+
+class RegisterPendingResponse(BaseModel):
+    """
+    Returned by POST /auth/register when registration succeeds but email is unverified.
+    No session is issued — the client should redirect to the verify-OTP screen.
+    """
+    email: str
+    message: str = "Registration successful. Please verify your email."
