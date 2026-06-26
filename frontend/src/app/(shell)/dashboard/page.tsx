@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ClipboardCheck,
-  Loader2,
   Download,
   ShieldAlert,
   ListTodo,
@@ -25,6 +24,7 @@ import { t, RISK_CATEGORY_HI } from '@/lib/translations';
 import { ComplianceScore } from '@/components/dashboard/ComplianceScore';
 import { CategoryTable } from '@/components/dashboard/CategoryTable';
 import { ActionQueue } from '@/components/dashboard/ActionQueue';
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 
 // Fixed review cadence used for the "Days to Deadline" stat. v1 ASSUMPTION
 // (flagged in CLAUDE.md) — 90 days from the latest attempt; may become
@@ -60,7 +60,7 @@ function StatCard({
   accent?: string;
 }) {
   return (
-    <div className="bg-surface rounded-2xl border border-line p-5">
+    <div className="bg-surface rounded-2xl border border-line p-5 transition-all duration-200 ease-out hover:shadow-md motion-safe:hover:scale-[1.015] motion-safe:hover:-translate-y-0.5">
       <div className="flex items-center gap-2 mb-3">
         <span
           className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -341,12 +341,7 @@ export default function DashboardPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-app">
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-24 gap-4 text-muted">
-          <Loader2 size={28} className="animate-spin text-accent" />
-          <p className="text-sm">{t('dashboardLoading', lang)}</p>
-        </div>
-      )}
+      {loading && <DashboardSkeleton />}
 
       {!loading && !scores?.latest && (
         <div className="flex flex-col items-center justify-center px-8 py-24 text-center">

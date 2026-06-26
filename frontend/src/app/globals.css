@@ -41,6 +41,9 @@
   --chart-dot-bg: #FFFFFF;
   --chart-track: #ECEBF6;
   --score-center-text: #1B1830;
+
+  /* Skeleton-loading fill — neutral gray that reads on bg-surface/bg-app */
+  --skeleton: #E5E7EB;
 }
 
 .dark {
@@ -65,6 +68,9 @@
   --chart-dot-bg: #1A1828;
   --chart-track: #2B2740;
   --score-center-text: #ECEAF7;
+
+  /* Skeleton-loading fill — lifts slightly off the dark surface */
+  --skeleton: #2B2740;
 }
 
 html,

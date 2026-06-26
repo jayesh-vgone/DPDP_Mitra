@@ -4,10 +4,13 @@ import { PlusCircle, MessageSquare } from 'lucide-react';
 import type { Conversation } from '@/lib/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { t } from '@/lib/translations';
+import { ConversationListSkeleton } from '@/components/chat/ChatSkeletons';
 
 interface SidebarProps {
   conversations: Conversation[];
   activeConversationId: string | null;
+  /** True while the conversation list is being fetched on mount. */
+  loading?: boolean;
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
 }
@@ -28,6 +31,7 @@ function formatDate(iso: string): string {
 export function Sidebar({
   conversations,
   activeConversationId,
+  loading = false,
   onNewChat,
   onSelectConversation,
 }: SidebarProps) {
@@ -48,7 +52,9 @@ export function Sidebar({
 
       {/* Conversation list */}
       <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-        {conversations.length === 0 ? (
+        {loading ? (
+          <ConversationListSkeleton />
+        ) : conversations.length === 0 ? (
           <p className="text-muted text-xs text-center mt-6 px-3 leading-relaxed">
             {t('noConversations', lang)}
             <br />

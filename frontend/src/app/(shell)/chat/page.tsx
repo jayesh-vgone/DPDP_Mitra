@@ -14,6 +14,8 @@ export default function ChatCopilotPage() {
     activeConversationId,
     assessmentMode,
     isLoading,
+    isLoadingHistory,
+    conversationsLoading,
     sendMessage,
     sendVoiceMessage,
     startNewConversation,
@@ -27,6 +29,7 @@ export default function ChatCopilotPage() {
       <Sidebar
         conversations={conversations}
         activeConversationId={activeConversationId}
+        loading={conversationsLoading}
         onNewChat={startNewConversation}
         onSelectConversation={selectConversation}
       />
@@ -39,7 +42,12 @@ export default function ChatCopilotPage() {
             <span className="text-[#9CA3AF] font-normal">{t('assessmentModeHint', lang)}</span>
           </div>
         )}
-        <ChatWindow messages={messages} isLoading={isLoading} onSend={sendMessage} />
+        <ChatWindow
+          messages={messages}
+          isLoading={isLoading}
+          isLoadingHistory={isLoadingHistory}
+          onSend={sendMessage}
+        />
         <InputBar
           onSend={sendMessage}
           onVoice={sendVoiceMessage}

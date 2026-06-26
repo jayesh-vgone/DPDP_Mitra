@@ -1,6 +1,7 @@
 'use client';
 
 import { useLanguage } from '@/context/LanguageContext';
+import { useCountUp } from '@/hooks/useCountUp';
 import { t, type TranslationKey } from '@/lib/translations';
 
 const RADIUS = 70;
@@ -21,11 +22,16 @@ function getStatus(score: number): { labelKey: TranslationKey; color: string } {
  */
 export function ComplianceScore({ score }: { score: number }) {
   const { lang } = useLanguage();
+  // Status word/colour stay on the final score so they don't flicker through
+  // bands while the ring fills.
   const { labelKey, color } = getStatus(score);
 
-  const firstEnd = Math.min(score, 50);
+  // Animate ring + centre number together from 0 → score on every mount.
+  const animated = useCountUp(score);
+
+  const firstEnd = Math.min(animated, 50);
   const firstFilled = (firstEnd / 100) * CIRCUMFERENCE;
-  const secondEnd = Math.max(0, score - 50);
+  const secondEnd = Math.max(0, animated - 50);
   const secondFilled = (secondEnd / 100) * CIRCUMFERENCE;
   const arc1Rotate = -90;
   const arc2Rotate = (firstEnd / 100) * 360 - 90;
@@ -58,7 +64,7 @@ export function ComplianceScore({ score }: { score: number }) {
       {/* Center label */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-4xl font-bold leading-none" style={{ color: 'var(--score-center-text)' }}>
-          {Math.round(score)}
+          {Math.round(animated)}
         </span>
         <span className="text-xs text-muted mt-1">{t('outOf100', lang)}</span>
         <span className="text-sm font-semibold mt-1" style={{ color }}>

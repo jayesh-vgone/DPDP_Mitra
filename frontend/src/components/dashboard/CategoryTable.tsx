@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { useCountUp } from '@/hooks/useCountUp';
 import { t, type TranslationKey, RISK_CATEGORY_HI, CATEGORY_TO_SLUG } from '@/lib/translations';
 
 const RISK_CATEGORIES = [
@@ -23,6 +24,76 @@ function bandDisplay(score: number): { levelKey: TranslationKey; color: string }
   if (score > 70) return { levelKey: 'levelLow', color: 'var(--risk-low)' };
   if (score > 40) return { levelKey: 'levelMedium', color: 'var(--risk-med)' };
   return { levelKey: 'levelHigh', color: 'var(--risk-high)' };
+}
+
+// One table row. Extracted so it can call useCountUp (hooks can't run inside a
+// .map). Bar width + score number animate from 0 via the shared hook; the band
+// colour, level badge and trend arrow stay on the final score so they don't
+// flicker while the bar fills. All rows mount in the same commit, so they start
+// together (no stagger).
+function CategoryRow({
+  cat,
+  score,
+  previousScore,
+  attemptId,
+}: {
+  cat: string;
+  score: number;
+  previousScore: number | undefined;
+  attemptId: string;
+}) {
+  const { lang } = useLanguage();
+  const animated = useCountUp(score);
+  const { levelKey, color } = bandDisplay(score);
+  const displayName = lang === 'hi' ? RISK_CATEGORY_HI[cat] ?? cat : cat;
+  const slug = CATEGORY_TO_SLUG[cat];
+
+  let trend: 'up' | 'down' | 'flat' = 'flat';
+  if (previousScore !== undefined) {
+    const diff = score - previousScore;
+    trend = diff > 0.01 ? 'up' : diff < -0.01 ? 'down' : 'flat';
+  }
+
+  return (
+    <tr className="border-b border-line/60 last:border-0">
+      <td className="py-3 pr-3 align-middle">
+        {slug ? (
+          <Link
+            href={`/assessment/${attemptId}/category/${slug}`}
+            className="text-ink hover:text-accent font-medium transition"
+          >
+            {displayName}
+          </Link>
+        ) : (
+          <span className="text-ink font-medium">{displayName}</span>
+        )}
+      </td>
+      <td className="py-3 pr-3 align-middle">
+        <div className="flex items-center gap-2">
+          <span className="text-ink font-semibold w-9 tabular-nums">{Math.round(animated)}</span>
+          <div className="flex-1 h-2 rounded-full bg-surface-2 overflow-hidden min-w-[60px]">
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${Math.max(0, Math.min(100, animated))}%`, background: color }}
+            />
+          </div>
+        </div>
+      </td>
+      <td className="py-3 pr-3 align-middle">
+        <span
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-[0.7rem] font-bold text-white"
+          style={{ background: color }}
+        >
+          {t(levelKey, lang)}
+        </span>
+      </td>
+      <td className="py-3 align-middle text-center">
+        {trend === 'up' && <TrendingUp size={16} className="inline" style={{ color: 'var(--risk-low)' }} />}
+        {trend === 'down' && <TrendingDown size={16} className="inline" style={{ color: 'var(--risk-high)' }} />}
+        {trend === 'flat' && <Minus size={16} className="inline text-muted" />}
+      </td>
+    </tr>
+  );
 }
 
 export function CategoryTable({
@@ -50,60 +121,15 @@ export function CategoryTable({
             </tr>
           </thead>
           <tbody>
-            {RISK_CATEGORIES.map((cat) => {
-              const score = latest[cat] ?? 0;
-              const { levelKey, color } = bandDisplay(score);
-              const displayName = lang === 'hi' ? RISK_CATEGORY_HI[cat] ?? cat : cat;
-              const slug = CATEGORY_TO_SLUG[cat];
-
-              // Trend: compare against second-latest attempt if present.
-              let trend: 'up' | 'down' | 'flat' = 'flat';
-              if (previous && previous[cat] !== undefined) {
-                const diff = score - previous[cat];
-                trend = diff > 0.01 ? 'up' : diff < -0.01 ? 'down' : 'flat';
-              }
-
-              return (
-                <tr key={cat} className="border-b border-line/60 last:border-0">
-                  <td className="py-3 pr-3 align-middle">
-                    {slug ? (
-                      <Link
-                        href={`/assessment/${attemptId}/category/${slug}`}
-                        className="text-ink hover:text-accent font-medium transition"
-                      >
-                        {displayName}
-                      </Link>
-                    ) : (
-                      <span className="text-ink font-medium">{displayName}</span>
-                    )}
-                  </td>
-                  <td className="py-3 pr-3 align-middle">
-                    <div className="flex items-center gap-2">
-                      <span className="text-ink font-semibold w-9 tabular-nums">{Math.round(score)}</span>
-                      <div className="flex-1 h-2 rounded-full bg-surface-2 overflow-hidden min-w-[60px]">
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${Math.max(0, Math.min(100, score))}%`, background: color }}
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 pr-3 align-middle">
-                    <span
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-[0.7rem] font-bold text-white"
-                      style={{ background: color }}
-                    >
-                      {t(levelKey, lang)}
-                    </span>
-                  </td>
-                  <td className="py-3 align-middle text-center">
-                    {trend === 'up' && <TrendingUp size={16} className="inline" style={{ color: 'var(--risk-low)' }} />}
-                    {trend === 'down' && <TrendingDown size={16} className="inline" style={{ color: 'var(--risk-high)' }} />}
-                    {trend === 'flat' && <Minus size={16} className="inline text-muted" />}
-                  </td>
-                </tr>
-              );
-            })}
+            {RISK_CATEGORIES.map((cat) => (
+              <CategoryRow
+                key={cat}
+                cat={cat}
+                score={latest[cat] ?? 0}
+                previousScore={previous ? previous[cat] : undefined}
+                attemptId={attemptId}
+              />
+            ))}
           </tbody>
         </table>
       </div>

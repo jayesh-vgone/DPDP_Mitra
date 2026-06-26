@@ -7,6 +7,7 @@ import { getAssessmentQuestions, submitAssessment } from '@/lib/api';
 import type { QuestionOut, ResponseIn } from '@/lib/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { t, QUESTION_HI, RISK_CATEGORY_HI } from '@/lib/translations';
+import { AssessmentSkeleton } from '@/components/assessment/AssessmentSkeleton';
 
 // Canonical risk-category order — must match scoring.py RISK_CATEGORIES
 const RISK_CATEGORIES = [
@@ -343,12 +344,7 @@ export default function AssessmentPage() {
   // ── Loading / error states ────────────────────────────────────────────────
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-400">
-        <Loader2 size={32} className="animate-spin text-[#4F46E5]" />
-        <p className="text-sm">{t('wizardLoadingText', lang)}</p>
-      </div>
-    );
+    return <AssessmentSkeleton />;
   }
 
   if (loadError) {

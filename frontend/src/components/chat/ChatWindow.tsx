@@ -5,12 +5,15 @@ import { Scale } from 'lucide-react';
 import type { Message } from '@/lib/types';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
+import { ChatHistorySkeleton } from './ChatSkeletons';
 import { useLanguage } from '@/context/LanguageContext';
 import { t } from '@/lib/translations';
 
 interface ChatWindowProps {
   messages: Message[];
   isLoading: boolean;
+  /** True only while a saved conversation's history is being fetched. */
+  isLoadingHistory?: boolean;
   onSend: (text: string) => void;
 }
 
@@ -47,12 +50,22 @@ function EmptyState({ onSend }: { onSend: (text: string) => void }) {
   );
 }
 
-export function ChatWindow({ messages, isLoading, onSend }: ChatWindowProps) {
+export function ChatWindow({ messages, isLoading, isLoadingHistory = false, onSend }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  // Fetching a saved conversation's history — show skeleton bubbles, never the
+  // empty state or the "AI generating" typing indicator.
+  if (isLoadingHistory) {
+    return (
+      <div className="flex-1 overflow-y-auto bg-white dark:bg-[#0E0D1A] py-4">
+        <ChatHistorySkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto bg-white dark:bg-[#0E0D1A] py-4">

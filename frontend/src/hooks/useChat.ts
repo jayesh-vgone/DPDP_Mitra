@@ -12,6 +12,10 @@ interface ChatHook {
   activeConversationId: string | null;
   assessmentMode: boolean;
   isLoading: boolean;
+  // "AI is generating a reply" (isLoading) is kept distinct from these two
+  // pure data-fetch states so the UI can show a typing indicator vs. skeletons.
+  isLoadingHistory: boolean;
+  conversationsLoading: boolean;
   sendMessage: (text: string) => Promise<void>;
   sendVoiceMessage: (audioBlob: Blob) => Promise<void>;
   startNewConversation: () => void;
@@ -28,6 +32,10 @@ export function useChat(): ChatHook {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [assessmentMode, setAssessmentMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Distinct from isLoading (AI generating): these track plain data fetches so
+  // the UI can render skeletons instead of the typing indicator.
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [conversationsLoading, setConversationsLoading] = useState(true);
 
   const { lang } = useLanguage();
   const { playAudio, speakText } = useSpeech();
@@ -39,7 +47,11 @@ export function useChat(): ChatHook {
   conversationsRef.current = conversations;
 
   useEffect(() => {
-    getConversations().then(setConversations).catch(console.error);
+    setConversationsLoading(true);
+    getConversations()
+      .then(setConversations)
+      .catch(console.error)
+      .finally(() => setConversationsLoading(false));
   }, []);
 
   const refreshConversations = useCallback(async () => {
@@ -184,14 +196,17 @@ export function useChat(): ChatHook {
     // conversationsRef avoids a stale closure without adding `conversations` to deps.
     const conv = conversationsRef.current.find((c) => c.id === id);
     setAssessmentMode(conv?.assessment_mode ?? false);
-    setIsLoading(true);
+    // History fetch — distinct from the "AI generating" isLoading flag so the UI
+    // shows skeleton bubbles here, not the typing indicator.
+    setMessages([]);
+    setIsLoadingHistory(true);
     try {
       const msgs = await getMessages(id);
       setMessages(msgs);
     } catch (err) {
       console.error('selectConversation error:', err);
     } finally {
-      setIsLoading(false);
+      setIsLoadingHistory(false);
     }
   }, []);
 
@@ -201,6 +216,8 @@ export function useChat(): ChatHook {
     activeConversationId,
     assessmentMode,
     isLoading,
+    isLoadingHistory,
+    conversationsLoading,
     sendMessage,
     sendVoiceMessage,
     startNewConversation,

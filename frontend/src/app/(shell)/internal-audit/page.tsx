@@ -29,6 +29,7 @@ import type {
 } from '@/lib/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { t, QUESTION_HI, RISK_CATEGORY_HI } from '@/lib/translations';
+import { InternalAuditSkeleton } from '@/components/audit/InternalAuditSkeleton';
 
 // ── Scale / Boolean controls (duplicated from assessment page to keep the
 // audit wizard self-contained — they're small presentational-only components)
@@ -675,11 +676,7 @@ export default function InternalAuditPage() {
         </div>
 
         {/* Loading */}
-        {loading && (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 size={28} className="animate-spin text-accent" />
-          </div>
-        )}
+        {loading && <InternalAuditSkeleton />}
 
         {/* Content */}
         {!loading && status && (
