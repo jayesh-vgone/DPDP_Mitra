@@ -108,7 +108,7 @@ export function CategoryTable({
   const { lang } = useLanguage();
 
   return (
-    <div className="bg-surface rounded-2xl border border-line p-6">
+    <div className="bg-surface rounded-2xl border border-line p-6 hover-lift hover-lift-panel">
       <h3 className="font-semibold text-ink text-base mb-4">{t('catTableTitle', lang)}</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

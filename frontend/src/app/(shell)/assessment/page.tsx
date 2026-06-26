@@ -8,6 +8,7 @@ import type { QuestionOut, ResponseIn } from '@/lib/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { t, QUESTION_HI, RISK_CATEGORY_HI } from '@/lib/translations';
 import { AssessmentSkeleton } from '@/components/assessment/AssessmentSkeleton';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 // Canonical risk-category order — must match scoring.py RISK_CATEGORIES
 const RISK_CATEGORIES = [
@@ -269,9 +270,14 @@ export default function AssessmentPage() {
 
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [stepIndex, setStepIndex] = useState(0); // 0-7 = categories; 8 = review
+  const [mStep, setMStep] = useState(0); // mobile: 0..N-1 = question; N = review
   const [stepError, setStepError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  // Below sm we step through one question at a time; desktop keeps the grouped
+  // per-category layout. All new mobile logic is gated on this flag.
+  const isMobile = useIsMobile();
 
   const loadQuestions = useCallback(async () => {
     setLoading(true);
@@ -297,9 +303,15 @@ export default function AssessmentPage() {
 
   const steps = RISK_CATEGORIES.filter((cat) => (grouped[cat]?.length ?? 0) > 0);
   const totalSteps = steps.length; // Should be 8
-  const isReview = stepIndex >= totalSteps;
+
+  // Flat, category-ordered question list — the unit of navigation on mobile.
+  const flatQuestions: { q: QuestionOut; cat: string }[] = [];
+  for (const cat of steps) for (const q of grouped[cat] ?? []) flatQuestions.push({ q, cat });
+
+  const isReview = isMobile ? mStep >= flatQuestions.length : stepIndex >= totalSteps;
   const currentCategory = isReview ? null : steps[stepIndex];
   const currentQuestions = currentCategory ? (grouped[currentCategory] ?? []) : [];
+  const mobileItem = isMobile && !isReview ? flatQuestions[mStep] : null;
 
   function setAnswer(questionId: string, value: number) {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -317,10 +329,26 @@ export default function AssessmentPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  // Mobile: advance one question at a time (the last one leads into review).
+  function handleMobileNext() {
+    const item = flatQuestions[mStep];
+    if (item && answers[item.q.id] === undefined) {
+      setStepError(t('wizardAnswerAll', lang));
+      return;
+    }
+    setStepError('');
+    setMStep((i) => i + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function handleBack() {
     setStepError('');
     setSubmitError('');
-    setStepIndex((i) => Math.max(0, i - 1));
+    if (isMobile) {
+      setMStep((i) => Math.max(0, i - 1));
+    } else {
+      setStepIndex((i) => Math.max(0, i - 1));
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -374,7 +402,8 @@ export default function AssessmentPage() {
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('wizardNoPartial', lang)}</p>
         </div>
 
-        {/* Progress bar */}
+        {/* Progress bar — desktop (category steps + dots) */}
+        {!isMobile && (
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
             <span>
@@ -409,6 +438,26 @@ export default function AssessmentPage() {
             ))}
           </div>
         </div>
+        )}
+
+        {/* Progress bar — mobile (one question at a time) */}
+        {isMobile && !isReview && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>{t('wizardStepLabel', lang)} {mStep + 1} {t('wizardOfLabel', lang)} {flatQuestions.length}</span>
+              <span>{Math.round((mStep / Math.max(1, flatQuestions.length)) * 100)}%</span>
+            </div>
+            <div className="h-2 bg-gray-200 dark:bg-[#2B2740] rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  background: 'linear-gradient(90deg, #4F46E5, #7C3AED)',
+                  width: `${(mStep / Math.max(1, flatQuestions.length)) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Review screen */}
         {isReview && (
@@ -422,8 +471,8 @@ export default function AssessmentPage() {
           />
         )}
 
-        {/* Category step */}
-        {!isReview && currentCategory && (
+        {/* Category step — desktop (all questions in the category) */}
+        {!isReview && !isMobile && currentCategory && (
           <div className="space-y-4">
             {/* Step title */}
             <div className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] px-6 py-4">
@@ -474,6 +523,54 @@ export default function AssessmentPage() {
               >
                 {stepIndex === totalSteps - 1 ? t('wizardReviewBtn', lang) : t('wizardNext', lang)}
                 {stepIndex < totalSteps - 1 && <ChevronRight size={16} />}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Single-question step — mobile */}
+        {!isReview && isMobile && mobileItem && (
+          <div className="space-y-4">
+            {/* Category context */}
+            <div className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] px-5 py-3">
+              <p className="text-xs font-medium text-[#4F46E5] uppercase tracking-wider">
+                {lang === 'hi' ? (RISK_CATEGORY_HI[mobileItem.cat] ?? mobileItem.cat) : mobileItem.cat}
+              </p>
+            </div>
+
+            <QuestionRow
+              question={mobileItem.q}
+              value={answers[mobileItem.q.id]}
+              onChange={(v) => setAnswer(mobileItem.q.id, v)}
+              index={mStep}
+            />
+
+            {stepError && (
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-700">
+                <AlertCircle size={16} className="shrink-0" />
+                {stepError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              {mStep > 0 && (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 dark:border-[#2B2740] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2B2740] transition"
+                >
+                  <ChevronLeft size={16} />
+                  {t('wizardBack', lang)}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleMobileNext}
+                style={{ background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white font-semibold text-sm transition hover:opacity-90"
+              >
+                {mStep === flatQuestions.length - 1 ? t('wizardReviewBtn', lang) : t('wizardNext', lang)}
+                {mStep < flatQuestions.length - 1 && <ChevronRight size={16} />}
               </button>
             </div>
           </div>

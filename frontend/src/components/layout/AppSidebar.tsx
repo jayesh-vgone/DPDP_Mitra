@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   SearchCheck,
   Users,
+  X,
   type LucideProps,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
@@ -45,7 +46,13 @@ const NAV_GROUPS: Array<{ sectionKey: TranslationKey; items: NavItem[] }> = [
   },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({
+  mobileOpen = false,
+  onClose,
+}: {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
   const { lang } = useLanguage();
 
@@ -56,26 +63,49 @@ export function AppSidebar() {
   });
 
   return (
-    <aside className="w-60 bg-sidebar flex flex-col shrink-0 border-r border-line">
-      {/* Logo */}
-      <div className="px-5 py-5 border-b border-line">
-        <div className="flex items-center gap-3">
-          <div
-            className="p-2 rounded-xl shadow-sm"
-            style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-violet))' }}
+    <>
+      {/* Mobile backdrop — only below lg, only when the drawer is open */}
+      <div
+        className={`lg:hidden fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ${
+          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <aside
+        className={`w-60 bg-sidebar flex flex-col shrink-0 border-r border-line
+          fixed inset-y-0 left-0 z-50 transition-transform duration-300
+          lg:static lg:z-auto lg:translate-x-0
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        {/* Logo */}
+        <div className="px-5 py-5 border-b border-line flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div
+              className="p-2 rounded-xl shadow-sm"
+              style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-violet))' }}
+            >
+              <ShieldCheck size={18} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-ink font-bold text-xl leading-tight tracking-tight">
+                EduPrivacy AI
+              </h1>
+              <p className="text-accent text-sm leading-tight mt-0.5 font-semibold">
+                DPDP Copilot
+              </p>
+            </div>
+          </div>
+          {/* Close — mobile only */}
+          <button
+            onClick={onClose}
+            className="lg:hidden w-9 h-9 -mr-1 flex items-center justify-center rounded-lg text-muted hover:bg-surface-2 transition shrink-0"
+            aria-label="Close menu"
           >
-            <ShieldCheck size={18} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-ink font-bold text-xl leading-tight tracking-tight">
-              EduPrivacy AI
-            </h1>
-            <p className="text-accent text-sm leading-tight mt-0.5 font-semibold">
-              DPDP Copilot
-            </p>
-          </div>
+            <X size={18} />
+          </button>
         </div>
-      </div>
 
       {/* Navigation — grouped */}
       <nav className="flex-1 py-4 px-2 space-y-5 overflow-y-auto">
@@ -130,6 +160,7 @@ export function AppSidebar() {
         <p className="text-[0.65rem] text-muted">{today}</p>
         <p className="text-[0.65rem] text-muted mt-0.5 font-medium">ENG IN</p>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

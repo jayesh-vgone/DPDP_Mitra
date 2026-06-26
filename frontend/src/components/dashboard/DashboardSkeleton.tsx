@@ -126,7 +126,7 @@ function ActionQueueSkeleton() {
 export function DashboardSkeleton() {
   const { lang } = useLanguage();
   return (
-    <div className="px-8 py-6 space-y-6" role="status" aria-busy="true">
+    <div className="px-4 sm:px-8 py-6 space-y-6" role="status" aria-busy="true">
       <span className="sr-only">{t('dashboardLoading', lang)}</span>
 
       {/* Page header */}

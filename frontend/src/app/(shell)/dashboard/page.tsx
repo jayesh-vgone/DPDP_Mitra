@@ -60,7 +60,7 @@ function StatCard({
   accent?: string;
 }) {
   return (
-    <div className="bg-surface rounded-2xl border border-line p-5 transition-all duration-200 ease-out hover:shadow-md motion-safe:hover:scale-[1.015] motion-safe:hover:-translate-y-0.5">
+    <div className="bg-surface rounded-2xl border border-line p-5 hover-lift">
       <div className="flex items-center gap-2 mb-3">
         <span
           className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -115,7 +115,7 @@ function OverallScoreCard({
     // Compliance-by-Category card). The donut block flexes to absorb any extra
     // height, centring between the header and the stat list — so there is no dead
     // whitespace at the bottom regardless of how tall the neighbouring card is.
-    <div className="bg-surface rounded-2xl border border-line p-6 flex flex-col h-full">
+    <div className="bg-surface rounded-2xl border border-line p-6 flex flex-col h-full hover-lift hover-lift-panel">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-ink text-base">{t('statOverallScore', lang)}</h3>
         <button
@@ -199,7 +199,7 @@ function LiveDashboard({
   ].filter(Boolean);
 
   return (
-    <div className="px-8 py-6 space-y-6">
+    <div className="px-4 sm:px-8 py-6 space-y-6">
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="min-w-0">

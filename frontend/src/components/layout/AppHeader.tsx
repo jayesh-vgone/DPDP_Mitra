@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, Sun, Moon, Search, Bell, ChevronRight } from 'lucide-react';
+import { LogOut, Sun, Moon, Search, Bell, ChevronRight, Menu } from 'lucide-react';
 import { LanguageToggle } from '@/components/chat/LanguageToggle';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
@@ -28,7 +28,7 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-export function AppHeader() {
+export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { lang } = useLanguage();
@@ -49,12 +49,21 @@ export function AppHeader() {
 
   return (
     <header className="bg-surface border-b border-line px-6 py-3 flex items-center justify-between shrink-0">
-      {/* Breadcrumb (route-derived) */}
-      <nav className="flex items-center gap-1.5 text-sm min-w-0" aria-label="Breadcrumb">
-        <span className="text-muted">{t('breadcrumbRoot', lang)}</span>
-        <ChevronRight size={14} className="text-muted shrink-0" />
-        <span className="text-ink font-semibold truncate">{pageLabel}</span>
-      </nav>
+      {/* Hamburger (mobile) + breadcrumb (route-derived) */}
+      <div className="flex items-center gap-2 min-w-0">
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden w-9 h-9 -ml-1 flex items-center justify-center rounded-lg text-muted hover:bg-surface-2 transition shrink-0"
+          aria-label="Open menu"
+        >
+          <Menu size={20} />
+        </button>
+        <nav className="flex items-center gap-1.5 text-sm min-w-0" aria-label="Breadcrumb">
+          <span className="text-muted">{t('breadcrumbRoot', lang)}</span>
+          <ChevronRight size={14} className="text-muted shrink-0" />
+          <span className="text-ink font-semibold truncate">{pageLabel}</span>
+        </nav>
+      </div>
 
       {/* Right cluster */}
       <div className="flex items-center gap-2 sm:gap-3">

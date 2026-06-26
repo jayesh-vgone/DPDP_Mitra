@@ -1,6 +1,6 @@
 'use client';
 
-import { PlusCircle, MessageSquare } from 'lucide-react';
+import { PlusCircle, MessageSquare, X } from 'lucide-react';
 import type { Conversation } from '@/lib/types';
 import { useLanguage } from '@/context/LanguageContext';
 import { t } from '@/lib/translations';
@@ -11,6 +11,9 @@ interface SidebarProps {
   activeConversationId: string | null;
   /** True while the conversation list is being fetched on mount. */
   loading?: boolean;
+  /** Below lg the list is an off-canvas drawer; this controls its open state. */
+  mobileOpen?: boolean;
+  onClose?: () => void;
   onNewChat: () => void;
   onSelectConversation: (id: string) => void;
 }
@@ -32,23 +35,47 @@ export function Sidebar({
   conversations,
   activeConversationId,
   loading = false,
+  mobileOpen = false,
+  onClose,
   onNewChat,
   onSelectConversation,
 }: SidebarProps) {
   const { lang } = useLanguage();
 
   return (
-    <aside className="w-64 bg-surface flex flex-col border-r border-line shrink-0">
-      {/* New chat button */}
-      <div className="p-3 border-b border-line">
-        <button
-          onClick={onNewChat}
-          className="w-full flex items-center justify-center gap-2 text-white rounded-xl px-4 py-2.5 text-sm font-medium transition-colors bg-accent hover:bg-accent-hover"
-        >
-          <PlusCircle size={16} />
-          {t('newConversation', lang)}
-        </button>
-      </div>
+    <>
+      {/* Mobile backdrop — only below lg, only when the drawer is open */}
+      <div
+        className={`lg:hidden fixed inset-0 z-30 bg-black/40 transition-opacity duration-300 ${
+          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <aside
+        className={`w-64 bg-surface flex flex-col border-r border-line shrink-0
+          fixed inset-y-0 left-0 z-40 transition-transform duration-300
+          lg:static lg:z-auto lg:translate-x-0
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        {/* New chat button (+ mobile close) */}
+        <div className="p-3 border-b border-line flex items-center gap-2">
+          <button
+            onClick={onNewChat}
+            className="flex-1 flex items-center justify-center gap-2 text-white rounded-xl px-4 py-2.5 text-sm font-medium transition-colors bg-accent hover:bg-accent-hover"
+          >
+            <PlusCircle size={16} />
+            {t('newConversation', lang)}
+          </button>
+          <button
+            onClick={onClose}
+            className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg text-muted hover:bg-surface-2 transition shrink-0"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
 
       {/* Conversation list */}
       <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
@@ -99,6 +126,7 @@ export function Sidebar({
           <span className="text-muted">{t('footerDisclaimer', lang)}</span>
         </p>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

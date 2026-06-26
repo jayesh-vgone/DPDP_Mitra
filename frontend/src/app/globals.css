@@ -94,6 +94,46 @@ body {
   background: var(--accent);
 }
 
+/*
+  Shared hover "lift" — single source for the dashboard stat cards AND the three
+  lower panels (Overall Score, Compliance by Category, Action Queue). Deeper
+  shadow on hover always; subtle scale + upward nudge only when motion is allowed
+  (mirrors the original `motion-safe:` usage, so prefers-reduced-motion users get
+  just the shadow, no transform). `--lift-scale` defaults to 1.015 for the small
+  stat cards; `.hover-lift-panel` dials it down for the much larger panels so they
+  lift without visibly stretching.
+*/
+@layer components {
+  .hover-lift {
+    @apply transition-all duration-200 ease-out;
+  }
+  .hover-lift:hover {
+    @apply shadow-md;
+  }
+  .hover-lift-panel {
+    --lift-scale: 1.01;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .hover-lift:hover {
+      transform: translateY(-0.125rem) scale(var(--lift-scale, 1.015));
+    }
+  }
+}
+
+/*
+  Mobile: stop iOS Safari from auto-zooming the page when a form control gains
+  focus. Safari zooms whenever an input/select/textarea has font-size < 16px, so
+  we bump all form controls to 16px at phone widths only — desktop styling and
+  every Tailwind text-* class above 640px are untouched.
+*/
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Markdown output inside assistant bubbles */
 .assistant-content p {
   margin-bottom: 0.5rem;

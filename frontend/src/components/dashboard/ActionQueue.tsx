@@ -101,7 +101,7 @@ export function ActionQueue({
   }
 
   return (
-    <div className="bg-surface rounded-2xl border border-line p-6">
+    <div className="bg-surface rounded-2xl border border-line p-6 hover-lift hover-lift-panel">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-ink text-base">{t('aqTitle', lang)}</h3>
         <button

@@ -83,7 +83,7 @@ export default function CategoryDrillPage() {
   return (
     <div className="h-full overflow-y-auto bg-[#F9FAFB] dark:bg-[#0E0D1A]">
       {/* Header */}
-      <div className="bg-white dark:bg-[#1A1828] border-b border-gray-200 dark:border-[#2B2740] px-8 py-5">
+      <div className="bg-white dark:bg-[#1A1828] border-b border-gray-200 dark:border-[#2B2740] px-4 sm:px-8 py-5">
         <Link href="/dashboard" className="text-xs font-medium text-[#4F46E5] hover:underline">
           {t('drillBackToDashboard', lang)}
         </Link>
@@ -112,7 +112,7 @@ export default function CategoryDrillPage() {
       )}
 
       {detail && !loading && (
-        <div className="px-8 py-8 space-y-6 max-w-4xl">
+        <div className="px-4 sm:px-8 py-8 space-y-6 max-w-4xl">
           {/* Explanation */}
           <div className="bg-white dark:bg-[#1A1828] rounded-2xl border border-gray-100 dark:border-[#2B2740] p-6">
             <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{detail.explanation}</p>

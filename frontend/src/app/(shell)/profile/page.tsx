@@ -488,7 +488,7 @@ function PasswordSection() {
 
 export default function ProfilePage() {
   return (
-    <div className="h-full overflow-y-auto bg-[#F9FAFB] dark:bg-[#0E0D1A] px-8 py-8 space-y-6">
+    <div className="h-full overflow-y-auto bg-[#F9FAFB] dark:bg-[#0E0D1A] px-4 sm:px-8 py-8 space-y-6">
       <AccountSection />
       <InstitutionDetailsSection />
       <PasswordSection />

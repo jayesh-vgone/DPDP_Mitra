@@ -398,7 +398,7 @@ export default function AdminQuestionsPage() {
 
       <main className="max-w-4xl mx-auto px-6 py-8">
         {/* Category tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           {CATEGORY_TABS.map((t) => (
             <button
               key={t.value}
