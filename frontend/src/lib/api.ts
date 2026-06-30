@@ -25,6 +25,7 @@ import type {
   AdminInstitution,
   QuestionUpdate,
   QuestionCreate,
+  InstitutionQuestionCreate,
   InstitutionCategory,
   InternalAuditStatus,
   AuditStartResponse,
@@ -226,6 +227,45 @@ export async function adminVerifyField(
     method: 'PATCH',
     body: JSON.stringify({ field }),
   });
+}
+
+// ── Per-institution question CRUD (super-admin) ─────────────────────────────────
+
+export async function adminListInstitutionQuestions(
+  institutionId: string,
+): Promise<AdminQuestion[]> {
+  return apiFetch<AdminQuestion[]>(`/admin/institutions/${institutionId}/questions`);
+}
+
+export async function adminUpdateInstitutionQuestion(
+  institutionId: string,
+  questionId: string,
+  payload: QuestionUpdate,
+): Promise<AdminQuestion> {
+  return apiFetch<AdminQuestion>(
+    `/admin/institutions/${institutionId}/questions/${questionId}`,
+    { method: 'PUT', body: JSON.stringify(payload) },
+  );
+}
+
+export async function adminCreateInstitutionQuestion(
+  institutionId: string,
+  payload: InstitutionQuestionCreate,
+): Promise<AdminQuestion> {
+  return apiFetch<AdminQuestion>(`/admin/institutions/${institutionId}/questions`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function adminDeleteInstitutionQuestion(
+  institutionId: string,
+  questionId: string,
+): Promise<void> {
+  return apiFetch<void>(
+    `/admin/institutions/${institutionId}/questions/${questionId}`,
+    { method: 'DELETE' },
+  );
 }
 
 // ── Assessment endpoints ───────────────────────────────────────────────────────

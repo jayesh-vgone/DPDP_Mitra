@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   BadgeCheck, ChevronDown, ChevronRight, Clock, Loader2, LogOut, Search, ShieldCheck,
+  ListChecks,
 } from 'lucide-react';
 import { adminListInstitutions, adminVerifyField } from '@/lib/api';
 import type { AdminInstitution, InstitutionCategory } from '@/lib/types';
@@ -140,41 +141,53 @@ function InstitutionDetail({
 function InstitutionRow({
   inst,
   onUpdate,
+  onManageQuestions,
 }: {
   inst: AdminInstitution;
   onUpdate: (updated: AdminInstitution) => void;
+  onManageQuestions: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const updated = inst.last_updated
+    ? new Date(inst.last_updated).toLocaleDateString()
+    : '—';
 
   return (
     <div className="border border-[#1A2756] rounded-xl overflow-hidden">
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className="w-full flex items-center justify-between px-5 py-3.5 bg-[#0F1A3E] hover:bg-[#1A2756] transition text-left"
-      >
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="w-full flex items-center justify-between px-5 py-3.5 bg-[#0F1A3E]">
+        <button
+          onClick={() => setOpen((p) => !p)}
+          className="flex items-center gap-3 min-w-0 text-left flex-1 hover:opacity-90"
+        >
           <span className="text-sm font-medium text-gray-100 truncate">{inst.name}</span>
           <span className="shrink-0 text-xs px-2 py-0.5 rounded-full bg-[#FF9933]/10 text-[#FF9933] border border-[#FF9933]/20">
             {CATEGORY_LABEL[inst.category]}
           </span>
-        </div>
+        </button>
         <div className="flex items-center gap-3 shrink-0 ml-4">
+          <span className="hidden sm:inline text-xs text-gray-500" title={`Last updated ${updated}`}>
+            {inst.question_count} question{inst.question_count !== 1 ? 's' : ''}
+          </span>
+          <button
+            onClick={() => onManageQuestions(inst.id)}
+            className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-lg bg-[#FF9933]/10 text-[#FF9933] hover:bg-[#FF9933]/20 font-medium transition"
+          >
+            <ListChecks size={13} /> Questions
+          </button>
           {inst.pending_count > 0 ? (
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-900/30 text-amber-400 border border-amber-800">
+            <span className="hidden sm:inline text-xs px-2.5 py-0.5 rounded-full bg-amber-900/30 text-amber-400 border border-amber-800">
               {inst.pending_count} pending
             </span>
           ) : (
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-green-900/20 text-green-400 border border-green-800 flex items-center gap-1">
+            <span className="hidden sm:flex text-xs px-2.5 py-0.5 rounded-full bg-green-900/20 text-green-400 border border-green-800 items-center gap-1">
               <BadgeCheck size={11} /> All clear
             </span>
           )}
-          {open ? (
-            <ChevronDown size={16} className="text-gray-400" />
-          ) : (
-            <ChevronRight size={16} className="text-gray-400" />
-          )}
+          <button onClick={() => setOpen((p) => !p)} className="text-gray-400">
+            {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </button>
         </div>
-      </button>
+      </div>
       {open && <InstitutionDetail inst={inst} onUpdate={onUpdate} />}
     </div>
   );
@@ -246,7 +259,7 @@ export default function AdminInstitutionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0F2C]">
+    <div className="h-screen overflow-y-auto bg-[#0A0F2C]">
       {/* Header */}
       <header className="bg-[#0F1A3E] border-b border-[#1A2756] px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -263,7 +276,7 @@ export default function AdminInstitutionsPage() {
             onClick={() => router.push('/admin/questions')}
             className="text-xs text-gray-400 hover:text-gray-200 transition"
           >
-            Questions
+            Templates
           </button>
           <button
             onClick={handleLogout}
@@ -324,7 +337,12 @@ export default function AdminInstitutionsPage() {
         ) : (
           <div className="space-y-2">
             {displayed.map((inst) => (
-              <InstitutionRow key={inst.id} inst={inst} onUpdate={handleUpdate} />
+              <InstitutionRow
+                key={inst.id}
+                inst={inst}
+                onUpdate={handleUpdate}
+                onManageQuestions={(id) => router.push(`/admin/institutions/${id}/questions`)}
+              />
             ))}
           </div>
         )}

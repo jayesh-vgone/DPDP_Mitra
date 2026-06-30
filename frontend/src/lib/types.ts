@@ -153,6 +153,9 @@ export interface AdminInstitution {
   staff_count_verified: boolean;
   institution_subtype_verified: boolean;
   pending_count: number;
+  // Per-institution question-set stats (institution-scoped rows only).
+  question_count: number;
+  last_updated: string | null;
 }
 
 export interface AdminUser {
@@ -182,6 +185,16 @@ export interface QuestionUpdate {
 
 export interface QuestionCreate {
   institution_category: InstitutionCategory;
+  category: string;
+  question_text: string;
+  dpdp_section?: string | null;
+  weight: number;
+  answer_type: 'scale' | 'boolean';
+}
+
+// Per-institution question create — institution_category is derived server-side
+// from the institution, so the client does not send it.
+export interface InstitutionQuestionCreate {
   category: string;
   question_text: string;
   dpdp_section?: string | null;

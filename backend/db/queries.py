@@ -9,6 +9,7 @@ which makes these functions easier to test in isolation.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -94,30 +95,32 @@ async def admin_list_institutions(
     Optionally filter by name (case-insensitive substring match).
     pending_count (computed here) is the number of non-null fields that are unverified.
     """
+    # question_count / last_updated are per-institution-scoped question stats
+    # (institution_id-scoped rows only — NOT the category templates).
+    _select = """
+        SELECT i.id, i.name, i.category,
+               i.location, i.student_count, i.staff_count, i.institution_subtype,
+               i.location_verified, i.student_count_verified,
+               i.staff_count_verified, i.institution_subtype_verified,
+               COALESCE(q.question_count, 0) AS question_count,
+               q.last_updated AS last_updated
+        FROM institutions i
+        LEFT JOIN (
+            SELECT institution_id,
+                   COUNT(*) AS question_count,
+                   MAX(updated_at) AS last_updated
+            FROM assessment_questions
+            WHERE institution_id IS NOT NULL
+            GROUP BY institution_id
+        ) q ON q.institution_id = i.id
+    """
     if search:
         rows = await pool.fetch(
-            """
-            SELECT id, name, category,
-                   location, student_count, staff_count, institution_subtype,
-                   location_verified, student_count_verified,
-                   staff_count_verified, institution_subtype_verified
-            FROM institutions
-            WHERE LOWER(name) LIKE $1
-            ORDER BY name
-            """,
+            _select + " WHERE LOWER(i.name) LIKE $1 ORDER BY i.name",
             f"%{search.lower()}%",
         )
     else:
-        rows = await pool.fetch(
-            """
-            SELECT id, name, category,
-                   location, student_count, staff_count, institution_subtype,
-                   location_verified, student_count_verified,
-                   staff_count_verified, institution_subtype_verified
-            FROM institutions
-            ORDER BY name
-            """
-        )
+        rows = await pool.fetch(_select + " ORDER BY i.name")
 
     result = []
     for row in rows:
@@ -143,6 +146,8 @@ async def admin_list_institutions(
             "staff_count_verified": bool(row["staff_count_verified"]),
             "institution_subtype_verified": bool(row["institution_subtype_verified"]),
             "pending_count": pending,
+            "question_count": int(row["question_count"]),
+            "last_updated": row["last_updated"].isoformat() if row["last_updated"] else None,
         })
     return result
 
@@ -781,51 +786,76 @@ async def list_messages(
 # ── Assessment ─────────────────────────────────────────────────────────────────
 
 
-async def get_questions_for_category(
-    pool: asyncpg.Pool, institution_category: str
+def _question_row_to_dict(r) -> dict:
+    return {
+        "id": str(r["id"]),
+        "institution_category": r["institution_category"],
+        "category": r["category"],
+        "question_text": r["question_text"],
+        "dpdp_section": r["dpdp_section"],
+        "weight": float(r["weight"]),
+        "order_index": r["order_index"],
+        "answer_type": r["answer_type"],
+    }
+
+
+async def get_questions_for_institution(
+    pool: asyncpg.Pool, institution_id: str, institution_category: str
 ) -> list[dict]:
     """
-    Return all questions for a given institution category, ordered by order_index.
+    Return active questions OWNED BY this institution (its own editable copy,
+    cloned from the category template at provisioning time), ordered by order_index.
 
-    The router fetches the institution's category first, then calls this function.
-    Filtering by category happens here — scoring.py has no awareness of categories.
+    Each institution has its own independent question set (institution_id-scoped
+    rows). The category template rows (institution_id IS NULL) are NOT used here.
+
+    Defensive fallback: if this institution has no scoped rows yet (e.g. it
+    predates the per-institution migration and was never backfilled), fall back to
+    the category template so assessments never break — logged so it's noticeable.
     """
     rows = await pool.fetch(
         """
         SELECT id, institution_category, category, question_text,
                dpdp_section, weight, order_index, answer_type
         FROM assessment_questions
-        WHERE institution_category = $1
+        WHERE institution_id = $1::uuid
           AND is_active = true
         ORDER BY order_index ASC
         """,
-        institution_category,
+        institution_id,
     )
-    return [
-        {
-            "id": str(r["id"]),
-            "institution_category": r["institution_category"],
-            "category": r["category"],
-            "question_text": r["question_text"],
-            "dpdp_section": r["dpdp_section"],
-            "weight": float(r["weight"]),
-            "order_index": r["order_index"],
-            "answer_type": r["answer_type"],
-        }
-        for r in rows
-    ]
+    if not rows:
+        logging.getLogger(__name__).warning(
+            "[questions] institution %s has no institution-scoped questions; "
+            "falling back to '%s' category template. Run the backfill migration.",
+            institution_id, institution_category,
+        )
+        rows = await pool.fetch(
+            """
+            SELECT id, institution_category, category, question_text,
+                   dpdp_section, weight, order_index, answer_type
+            FROM assessment_questions
+            WHERE institution_id IS NULL
+              AND institution_category = $1
+              AND is_active = true
+            ORDER BY order_index ASC
+            """,
+            institution_category,
+        )
+    return [_question_row_to_dict(r) for r in rows]
 
 
 async def get_question_map(
-    pool: asyncpg.Pool, institution_category: str
+    pool: asyncpg.Pool, institution_id: str, institution_category: str
 ) -> dict[str, dict]:
     """
     Return a dict keyed by question UUID for quick look-ups during submission.
 
-    Values include weight and category so the router can build the ResponseItem
-    list for scoring.py without a per-question DB round-trip.
+    Institution-scoped (see get_questions_for_institution). Values include weight
+    and category so the router builds the ResponseItem list without a per-question
+    DB round-trip.
     """
-    questions = await get_questions_for_category(pool, institution_category)
+    questions = await get_questions_for_institution(pool, institution_id, institution_category)
     return {q["id"]: q for q in questions}
 
 
@@ -1356,11 +1386,189 @@ async def admin_list_questions(
                dpdp_section, weight, order_index, answer_type, is_active
         FROM assessment_questions
         WHERE institution_category = $1
+          AND institution_id IS NULL
         ORDER BY category ASC, order_index ASC
         """,
         institution_category,
     )
     return [_admin_question_to_dict(r) for r in rows]
+
+
+async def clone_template_questions_for_institution(
+    conn, institution_id: str, institution_category: str
+) -> int:
+    """
+    Clone the category-template questions (institution_id IS NULL) into new
+    institution-scoped rows for one institution. Returns the number of rows
+    created (0 if the institution already has scoped rows).
+
+    IDEMPOTENT: if the institution already owns ≥1 scoped question row, this is a
+    no-op and returns 0 — safe to re-run (backfill) and safe to call again at
+    provisioning. `conn` may be an asyncpg Pool OR a Connection (both expose
+    fetchval/execute), so this single helper backs both the backfill migration
+    and the seed/provisioning path.
+
+    All fields are copied verbatim (text, category, dpdp_section, weight,
+    order_index, answer_type, is_active) except id/institution_id/timestamps.
+    Edits to the template after this point do NOT propagate here.
+    """
+    existing = await conn.fetchval(
+        "SELECT COUNT(*) FROM assessment_questions WHERE institution_id = $1::uuid",
+        institution_id,
+    )
+    if existing and int(existing) > 0:
+        return 0
+
+    result = await conn.execute(
+        """
+        INSERT INTO assessment_questions
+            (institution_id, institution_category, category, question_text,
+             dpdp_section, weight, order_index, answer_type, is_active)
+        SELECT $1::uuid, institution_category, category, question_text,
+               dpdp_section, weight, order_index, answer_type, is_active
+        FROM assessment_questions
+        WHERE institution_id IS NULL
+          AND institution_category = $2
+        """,
+        institution_id, institution_category,
+    )
+    # result is "INSERT 0 <n>"
+    try:
+        return int(result.split()[-1])
+    except (ValueError, IndexError):
+        return 0
+
+
+# ── Per-institution question CRUD (admin, BOLA-scoped) ───────────────────────
+
+async def admin_list_institution_questions(
+    pool: asyncpg.Pool, institution_id: str
+) -> list[dict]:
+    """All questions (active AND inactive) OWNED by one institution, grouped order."""
+    rows = await pool.fetch(
+        """
+        SELECT id, institution_category, category, question_text,
+               dpdp_section, weight, order_index, answer_type, is_active
+        FROM assessment_questions
+        WHERE institution_id = $1::uuid
+        ORDER BY category ASC, order_index ASC
+        """,
+        institution_id,
+    )
+    return [_admin_question_to_dict(r) for r in rows]
+
+
+async def admin_get_institution_question(
+    pool: asyncpg.Pool, institution_id: str, question_id: str
+) -> Optional[dict]:
+    """
+    Fetch one question ONLY if it belongs to the given institution. Returns None
+    if the question doesn't exist OR is not owned by this institution (the router
+    maps None → 404, never 403 — BOLA pattern, no existence disclosure).
+    """
+    try:
+        row = await pool.fetchrow(
+            """
+            SELECT id, institution_category, category, question_text,
+                   dpdp_section, weight, order_index, answer_type, is_active
+            FROM assessment_questions
+            WHERE id = $1::uuid AND institution_id = $2::uuid
+            """,
+            question_id, institution_id,
+        )
+    except asyncpg.DataError:
+        return None
+    return None if row is None else _admin_question_to_dict(row)
+
+
+async def admin_update_institution_question(
+    pool: asyncpg.Pool,
+    institution_id: str,
+    question_id: str,
+    question_text: Optional[str] = None,
+    dpdp_section: Optional[str] = None,
+    weight: Optional[float] = None,
+    answer_type: Optional[str] = None,
+    is_active: Optional[bool] = None,
+) -> Optional[dict]:
+    """Edit one of THIS institution's questions. Returns None if not owned (→404)."""
+    current = await admin_get_institution_question(pool, institution_id, question_id)
+    if current is None:
+        return None
+
+    new_text    = current["question_text"] if question_text is None else question_text
+    new_section = current["dpdp_section"]  if dpdp_section  is None else dpdp_section
+    new_weight  = current["weight"]        if weight        is None else weight
+    new_atype   = current["answer_type"]   if answer_type   is None else answer_type
+    new_active  = current["is_active"]     if is_active     is None else is_active
+
+    row = await pool.fetchrow(
+        """
+        UPDATE assessment_questions
+        SET question_text = $3, dpdp_section = $4, weight = $5,
+            answer_type = $6, is_active = $7, updated_at = now()
+        WHERE id = $1::uuid AND institution_id = $2::uuid
+        RETURNING id, institution_category, category, question_text,
+                  dpdp_section, weight, order_index, answer_type, is_active
+        """,
+        question_id, institution_id, new_text, new_section, new_weight,
+        new_atype, new_active,
+    )
+    return None if row is None else _admin_question_to_dict(row)
+
+
+async def admin_create_institution_question(
+    pool: asyncpg.Pool,
+    institution_id: str,
+    institution_category: str,
+    category: str,
+    question_text: str,
+    dpdp_section: Optional[str],
+    weight: float,
+    answer_type: str,
+) -> dict:
+    """Add a new question owned by one institution (order_index = max+1 for it)."""
+    next_idx = await pool.fetchval(
+        "SELECT COALESCE(MAX(order_index), -1) + 1 FROM assessment_questions "
+        "WHERE institution_id = $1::uuid",
+        institution_id,
+    )
+    row = await pool.fetchrow(
+        """
+        INSERT INTO assessment_questions
+            (institution_id, institution_category, category, question_text,
+             dpdp_section, weight, order_index, answer_type, is_active)
+        VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, true)
+        RETURNING id, institution_category, category, question_text,
+                  dpdp_section, weight, order_index, answer_type, is_active
+        """,
+        institution_id, institution_category, category, question_text,
+        dpdp_section, weight, next_idx, answer_type,
+    )
+    return _admin_question_to_dict(row)
+
+
+async def admin_delete_institution_question(
+    pool: asyncpg.Pool, institution_id: str, question_id: str
+) -> str:
+    """
+    Delete one of THIS institution's questions.
+
+    Returns one of: "deleted", "not_found", "in_use".
+    "in_use" means the question is referenced by historical assessment_responses
+    (FK) and cannot be hard-deleted — the caller should deactivate it instead.
+    """
+    current = await admin_get_institution_question(pool, institution_id, question_id)
+    if current is None:
+        return "not_found"
+    try:
+        await pool.execute(
+            "DELETE FROM assessment_questions WHERE id = $1::uuid AND institution_id = $2::uuid",
+            question_id, institution_id,
+        )
+    except asyncpg.ForeignKeyViolationError:
+        return "in_use"
+    return "deleted"
 
 
 async def get_question_by_id(pool: asyncpg.Pool, question_id: str) -> Optional[dict]:
@@ -1439,6 +1647,7 @@ async def admin_create_question(
         SELECT COALESCE(MAX(order_index), -1) + 1
         FROM assessment_questions
         WHERE institution_category = $1
+          AND institution_id IS NULL
         """,
         institution_category,
     )
@@ -1644,37 +1853,26 @@ async def create_internal_audit_responses(
 
 async def get_questions_for_categories(
     pool: asyncpg.Pool,
+    institution_id: str,
     institution_category: str,
     target_categories: list[str],
 ) -> list[dict]:
     """
-    Return active questions for a specific institution_category filtered to
-    the given risk categories (used by the internal audit wizard).
+    Return this institution's own active questions filtered to the given risk
+    categories (used by the internal audit wizard). Institution-scoped — reads
+    the institution's editable copy, not the category template.
+
+    Shares the same defensive template fallback as get_questions_for_institution:
+    if the institution has no scoped rows, all of its questions are sourced from
+    the category template instead, then filtered to target_categories.
     """
     if not target_categories:
         return []
-    rows = await pool.fetch("""
-        SELECT id, institution_category, category, question_text,
-               dpdp_section, weight, order_index, answer_type
-        FROM assessment_questions
-        WHERE institution_category = $1
-          AND is_active = true
-          AND category = ANY($2::text[])
-        ORDER BY order_index ASC
-    """, institution_category, target_categories)
-    return [
-        {
-            "id": str(r["id"]),
-            "institution_category": r["institution_category"],
-            "category": r["category"],
-            "question_text": r["question_text"],
-            "dpdp_section": r["dpdp_section"],
-            "weight": float(r["weight"]),
-            "order_index": r["order_index"],
-            "answer_type": r["answer_type"],
-        }
-        for r in rows
-    ]
+    all_questions = await get_questions_for_institution(
+        pool, institution_id, institution_category
+    )
+    targets = set(target_categories)
+    return [q for q in all_questions if q["category"] in targets]
 
 
 async def get_next_audit_sequence_number(

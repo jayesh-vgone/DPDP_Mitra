@@ -3,11 +3,12 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-// /admin → questions console (which itself redirects to /admin/login if needed).
+// /admin → institutions list (the primary admin landing; redirects to
+// /admin/login itself if there's no admin session).
 export default function AdminIndexPage() {
   const router = useRouter();
   useEffect(() => {
-    router.replace('/admin/questions');
+    router.replace('/admin/institutions');
   }, [router]);
   return null;
 }

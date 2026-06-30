@@ -86,6 +86,11 @@ CREATE TABLE IF NOT EXISTS dpdp_embeddings (
 -- category is one of 8 DPDP risk categories. order_index controls display order.
 CREATE TABLE IF NOT EXISTS assessment_questions (
     id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    -- institution_id NULL  → category template (shared, seed_questions.py)
+    -- institution_id set   → that institution's own editable copy (cloned at
+    --                        provisioning). Assessment/audit reads are scoped to
+    --                        the institution's own rows, NOT the templates.
+    institution_id       UUID REFERENCES institutions(id),
     institution_category TEXT NOT NULL
                              CHECK (institution_category IN ('school', 'higher_ed', 'edtech')),
     category             TEXT NOT NULL,
@@ -133,6 +138,9 @@ CREATE TABLE IF NOT EXISTS assessment_responses (
 
 CREATE INDEX IF NOT EXISTS idx_attempts_institution_time
     ON assessment_attempts(institution_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_questions_institution
+    ON assessment_questions(institution_id);
 
 -- ── Action Queue (remediation tracker) ───────────────────────────────────────────
 -- Hybrid model: auto-generated items (is_custom=false) are deterministically

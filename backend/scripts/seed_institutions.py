@@ -11,11 +11,15 @@ Usage (from backend/ directory):
 """
 
 import asyncio
+import sys
 from pathlib import Path
 import os
 
 import asyncpg
 from dotenv import load_dotenv
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from db.queries import clone_template_questions_for_institution  # noqa: E402
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 DATABASE_URL = os.environ["DATABASE_URL"]
@@ -103,6 +107,17 @@ async def run():
             )
             # "INSERT 0 1" on insert, "UPDATE 1" on update
             upserted += 1
+
+        # Provision each institution's own question set from its category template
+        # (idempotent — clones only if the institution has no scoped rows yet).
+        rows = await conn.fetch("SELECT id, category FROM institutions")
+        provisioned = 0
+        for r in rows:
+            provisioned += await clone_template_questions_for_institution(
+                conn, str(r["id"]), r["category"]
+            )
+        if provisioned:
+            print(f"\n  Provisioned {provisioned} institution-scoped question row(s).")
 
         print(f"\n{'='*60}")
         print("  DPDP Mitra -- Demo Institutions Seeded / Updated")

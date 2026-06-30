@@ -130,7 +130,7 @@ async def start_audit(user_id: str = Depends(get_session_user)):
         # Already started — return the question set again (resume support)
         target_categories = current_audit["target_categories"]
         questions_raw = await queries.get_questions_for_categories(
-            pool, institution["category"], target_categories
+            pool, institution["id"], institution["category"], target_categories
         )
         return StartResponse(
             audit_id=current_audit["id"],
@@ -155,7 +155,7 @@ async def start_audit(user_id: str = Depends(get_session_user)):
 
     target_categories = current_audit["target_categories"]
     questions_raw = await queries.get_questions_for_categories(
-        pool, institution["category"], target_categories
+        pool, institution["id"], institution["category"], target_categories
     )
 
     return StartResponse(
@@ -202,7 +202,7 @@ async def submit_audit(
         question_map = {
             q["id"]: q
             for q in await queries.get_questions_for_categories(
-                pool, institution["category"], target_categories
+                pool, institution["id"], institution["category"], target_categories
             )
         }
     else:

@@ -75,7 +75,7 @@ async def get_questions(user_id: str = Depends(get_session_user)):
     institution = await _resolve_institution(user_id)
     category = institution["category"]
     pool = get_pool()
-    return await queries.get_questions_for_category(pool, category)
+    return await queries.get_questions_for_institution(pool, institution["id"], category)
 
 
 @router.post("/submit", response_model=SubmitResponse, status_code=201)
@@ -103,7 +103,7 @@ async def submit_assessment(
 
     # Load the canonical question map for this institution category.
     # question_map: { question_id: {id, category, weight, ...} }
-    question_map = await queries.get_question_map(pool, institution["category"])
+    question_map = await queries.get_question_map(pool, institution["id"], institution["category"])
 
     if not question_map:
         raise HTTPException(

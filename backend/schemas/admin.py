@@ -119,7 +119,46 @@ class AdminInstitutionOut(BaseModel):
     staff_count_verified: bool
     institution_subtype_verified: bool
     pending_count: int
+    # Per-institution question-set stats (institution-scoped rows only).
+    question_count: int = 0
+    last_updated: Optional[str] = None
 
 
 class VerifyFieldRequest(BaseModel):
     field: Literal["location", "student_count", "staff_count", "institution_subtype"]
+
+
+# ── Per-institution question CRUD ────────────────────────────────────────────
+
+class InstitutionQuestionCreateRequest(BaseModel):
+    """
+    Create a question owned by a specific institution. institution_category is
+    NOT accepted from the client — it's derived server-side from the institution
+    so a question can never be mis-tagged. `category` must be a known risk category.
+    """
+    category: str
+    question_text: str
+    dpdp_section: Optional[str] = None
+    weight: float = 1.0
+    answer_type: AnswerType = "scale"
+
+    @field_validator("category")
+    @classmethod
+    def category_is_known(cls, v: str) -> str:
+        if v not in RISK_CATEGORIES:
+            raise ValueError(f"category must be one of the 8 risk categories: {RISK_CATEGORIES}")
+        return v
+
+    @field_validator("weight")
+    @classmethod
+    def weight_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError("weight must be a positive number")
+        return v
+
+    @field_validator("question_text")
+    @classmethod
+    def text_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("question_text cannot be blank")
+        return v.strip()

@@ -7,17 +7,24 @@ institution dpdp_session realm):
   POST /admin/logout  — delete the admin session
   GET  /admin/me      — return the current admin (session check)
 
-Seed question-bank CRUD (all protected by get_current_admin):
-  GET  /admin/questions?institution_category=school  — all (active + inactive)
-  PUT  /admin/questions/{question_id}                — edit fields / toggle active
-  POST /admin/questions                              — add a new question
+TEMPLATE question-bank CRUD — category templates (institution_id IS NULL).
+Editing a template affects only FUTURE institution provisioning, never existing
+institutions. (all protected by get_current_admin):
+  GET  /admin/questions?institution_category=school  — all (active + inactive) templates
+  PUT  /admin/questions/{question_id}                — edit a template question
+  POST /admin/questions                              — add a template question
 
-Institution verification (all protected by get_current_admin):
-  GET   /admin/institutions?search=   — list all institutions with pending counts
+PER-INSTITUTION question CRUD — each institution owns an independent copy of its
+question set, cloned from its category template at provisioning. Edits here affect
+ONLY that one institution. (all protected by get_current_admin):
+  GET    /admin/institutions/{id}/questions               — that institution's questions
+  PUT    /admin/institutions/{id}/questions/{question_id} — edit one
+  POST   /admin/institutions/{id}/questions               — add one
+  DELETE /admin/institutions/{id}/questions/{question_id} — remove one (409 if in use)
+
+Institution verification + listing (all protected by get_current_admin):
+  GET   /admin/institutions?search=   — list all institutions (+ question_count, last_updated)
   PATCH /admin/institutions/{id}/verify-field  — verify one editable field
-
-Out of scope here (deferred): per-institution forking, auto-clone at signup,
-change-audit log. There is ONE shared question bank per institution_category.
 """
 
 import bcrypt
@@ -35,6 +42,7 @@ from schemas.admin import (
     AdminLoginRequest,
     AdminOut,
     AdminQuestionOut,
+    InstitutionQuestionCreateRequest,
     QuestionCreateRequest,
     QuestionUpdateRequest,
     RISK_CATEGORIES,
@@ -236,3 +244,109 @@ async def verify_institution_field(
         institution_subtype_verified=inst.get("institution_subtype_verified", False),
         pending_count=pending,
     )
+
+
+# ── Per-institution question CRUD ─────────────────────────────────────────────
+# Each institution owns an independent, editable copy of its question set (cloned
+# from its category template at provisioning). Editing here affects ONLY this one
+# institution — template edits do not propagate. All routes are super-admin only.
+# BOLA: a question is addressed via /institutions/{institution_id}/questions/{id};
+# the query layer 404s (never 403s) if that question is not owned by that institution.
+
+
+async def _require_institution(pool, institution_id: str) -> dict:
+    inst = await queries.get_institution_by_id(pool, institution_id)
+    if inst is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Institution not found")
+    return inst
+
+
+@router.get(
+    "/institutions/{institution_id}/questions",
+    response_model=list[AdminQuestionOut],
+)
+async def list_institution_questions(
+    institution_id: str,
+    admin_id: str = Depends(get_current_admin),
+):
+    """All questions (active + inactive) owned by one institution."""
+    pool = get_pool()
+    await _require_institution(pool, institution_id)
+    return await queries.admin_list_institution_questions(pool, institution_id)
+
+
+@router.put(
+    "/institutions/{institution_id}/questions/{question_id}",
+    response_model=AdminQuestionOut,
+)
+async def update_institution_question(
+    institution_id: str,
+    question_id: str,
+    req: QuestionUpdateRequest,
+    admin_id: str = Depends(get_current_admin),
+):
+    """Edit one of this institution's questions. 404 if not owned (BOLA-safe)."""
+    pool = get_pool()
+    await _require_institution(pool, institution_id)
+    updated = await queries.admin_update_institution_question(
+        pool, institution_id, question_id,
+        question_text=req.question_text,
+        dpdp_section=req.dpdp_section,
+        weight=req.weight,
+        answer_type=req.answer_type,
+        is_active=req.is_active,
+    )
+    if updated is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+    return updated
+
+
+@router.post(
+    "/institutions/{institution_id}/questions",
+    response_model=AdminQuestionOut,
+    status_code=201,
+)
+async def create_institution_question(
+    institution_id: str,
+    req: InstitutionQuestionCreateRequest,
+    admin_id: str = Depends(get_current_admin),
+):
+    """Add a new question to one institution. institution_category derived server-side."""
+    pool = get_pool()
+    inst = await _require_institution(pool, institution_id)
+    return await queries.admin_create_institution_question(
+        pool,
+        institution_id=institution_id,
+        institution_category=inst["category"],
+        category=req.category,
+        question_text=req.question_text,
+        dpdp_section=req.dpdp_section,
+        weight=req.weight,
+        answer_type=req.answer_type,
+    )
+
+
+@router.delete(
+    "/institutions/{institution_id}/questions/{question_id}",
+    status_code=204,
+)
+async def delete_institution_question(
+    institution_id: str,
+    question_id: str,
+    admin_id: str = Depends(get_current_admin),
+):
+    """
+    Delete one of this institution's questions. 404 if not owned (BOLA-safe).
+    Returns 409 if the question is referenced by historical responses — deactivate
+    it instead (set is_active=false) to preserve the audit trail.
+    """
+    pool = get_pool()
+    await _require_institution(pool, institution_id)
+    outcome = await queries.admin_delete_institution_question(pool, institution_id, question_id)
+    if outcome == "not_found":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+    if outcome == "in_use":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Question has historical responses and cannot be deleted. Deactivate it instead.",
+        )
