@@ -48,20 +48,20 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   }
 
   return (
-    <header className="bg-surface border-b border-line px-6 py-3 flex items-center justify-between shrink-0">
+    <header className="bg-brand-green-dark border-b border-brand-green-dark px-6 py-3 flex items-center justify-between shrink-0">
       {/* Hamburger (mobile) + breadcrumb (route-derived) */}
       <div className="flex items-center gap-2 min-w-0">
         <button
           onClick={onMenuClick}
-          className="lg:hidden w-9 h-9 -ml-1 flex items-center justify-center rounded-lg text-muted hover:bg-surface-2 transition shrink-0"
+          className="lg:hidden w-9 h-9 -ml-1 flex items-center justify-center rounded-lg text-white hover:bg-white/10 transition shrink-0"
           aria-label="Open menu"
         >
           <Menu size={20} />
         </button>
         <nav className="flex items-center gap-1.5 text-sm min-w-0" aria-label="Breadcrumb">
-          <span className="text-muted">{t('breadcrumbRoot', lang)}</span>
-          <ChevronRight size={14} className="text-muted shrink-0" />
-          <span className="text-ink font-semibold truncate">{pageLabel}</span>
+          <span className="text-white/70">{t('breadcrumbRoot', lang)}</span>
+          <ChevronRight size={14} className="text-white/50 shrink-0" />
+          <span className="text-white font-semibold truncate">{pageLabel}</span>
         </nav>
       </div>
 
@@ -86,7 +86,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
         <button
           type="button"
           title={t('notificationsComingSoon', lang)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:bg-surface-2 transition cursor-not-allowed"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition cursor-not-allowed"
           aria-label={t('notificationsComingSoon', lang)}
         >
           <Bell size={16} />
@@ -97,19 +97,16 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
         <button
           onClick={toggleTheme}
           title={theme === 'light' ? t('themeToggleDark', lang) : t('themeToggleLight', lang)}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:bg-surface-2 transition"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white hover:bg-white/10 transition"
         >
           {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
         </button>
 
         <Link href="/profile" title={t('profileLink', lang)} className="flex items-center gap-2 group">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 group-hover:opacity-80 transition"
-            style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-violet))' }}
-          >
-            <span className="text-white text-xs font-bold select-none">{initials}</span>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-brand-yellow group-hover:opacity-80 transition">
+            <span className="text-brand-navy text-xs font-bold select-none">{initials}</span>
           </div>
-          <span className="hidden sm:inline text-sm text-ink font-medium group-hover:text-accent transition">
+          <span className="hidden sm:inline text-sm text-white font-medium group-hover:text-brand-yellow transition">
             {displayName}
           </span>
         </Link>
@@ -117,7 +114,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
         <button
           onClick={handleLogout}
           title={t('logoutBtn', lang)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-ink hover:bg-surface-2 transition"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white/85 hover:text-white hover:bg-white/10 transition"
         >
           <LogOut size={14} />
           <span className="hidden sm:inline">{t('logoutBtn', lang)}</span>

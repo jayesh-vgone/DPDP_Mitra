@@ -36,15 +36,20 @@ function CategoryRow({
   score,
   previousScore,
   attemptId,
+  index,
 }: {
   cat: string;
   score: number;
   previousScore: number | undefined;
   attemptId: string;
+  index: number;
 }) {
   const { lang } = useLanguage();
   const animated = useCountUp(score);
   const { levelKey, color } = bandDisplay(score);
+  // Bar fill alternates brand green / yellow by row index (branding). The risk
+  // band `color` is kept ONLY for the level badge, which stays risk-coded.
+  const barColor = index % 2 === 0 ? 'var(--brand-green)' : 'var(--brand-yellow)';
   const displayName = lang === 'hi' ? RISK_CATEGORY_HI[cat] ?? cat : cat;
   const slug = CATEGORY_TO_SLUG[cat];
 
@@ -74,7 +79,7 @@ function CategoryRow({
           <div className="flex-1 h-2 rounded-full bg-surface-2 overflow-hidden min-w-[60px]">
             <div
               className="h-full rounded-full"
-              style={{ width: `${Math.max(0, Math.min(100, animated))}%`, background: color }}
+              style={{ width: `${Math.max(0, Math.min(100, animated))}%`, background: barColor }}
             />
           </div>
         </div>
@@ -121,13 +126,14 @@ export function CategoryTable({
             </tr>
           </thead>
           <tbody>
-            {RISK_CATEGORIES.map((cat) => (
+            {RISK_CATEGORIES.map((cat, index) => (
               <CategoryRow
                 key={cat}
                 cat={cat}
                 score={latest[cat] ?? 0}
                 previousScore={previous ? previous[cat] : undefined}
                 attemptId={attemptId}
+                index={index}
               />
             ))}
           </tbody>

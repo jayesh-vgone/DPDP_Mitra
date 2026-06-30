@@ -143,6 +143,26 @@ _SECTION_EN_RE = re.compile(r"\bSection\s+([\d][\w\(\)]*)", re.IGNORECASE)
 # Matches "धारा 8(5)" in Hindi replies.
 _SECTION_HI_RE = re.compile(r"धारा\s+([\d][\w\(\)]*)")
 
+# ── Out-of-scope vendor/firm recommendation detection (log-only) ──────────────
+# A small starter denylist of consulting/advisory firm names. Vendor names are
+# never present in the corpus, so any of these appearing in a reply is suspect.
+_FIRM_DENYLIST: list[str] = [
+    "deloitte", "kpmg", "pwc", "pricewaterhousecoopers", "ernst & young",
+    "ernst and young", "grant thornton", "accenture", "mckinsey", "bcg",
+    "boston consulting", "bain", "infosys", "tcs", "wipro", "cognizant",
+    "tata consultancy",
+]
+# "EY" as a standalone token (word-boundary, case-sensitive uppercase) — avoids
+# matching "they", "key", "money" etc. that a substring search would catch.
+_EY_RE = re.compile(r"\bEY\b")
+
+# "firms such as X, Y, Z" / "companies like X, Y and Z" enumeration patterns.
+_FIRM_ENUM_RE = re.compile(
+    r"\b(?:firms|companies|consultancies|vendors|providers|auditors)\s+"
+    r"(?:such as|like|including|e\.g\.?)\s+([A-Z][A-Za-z0-9&\.\,\s]{3,120})",
+    re.IGNORECASE,
+)
+
 
 def _names_overlap(cited: str, title: str) -> bool:
     """Return True when cited case name and retrieved doc_title likely refer to the same case."""
@@ -233,3 +253,32 @@ def check_citation_grounding(
                     sorted(retrieved_section_nums),
                     user_message,
                 )
+
+    # ── Out-of-scope vendor/firm recommendation check (separate log category) ──
+    _check_out_of_scope_recommendation(reply, user_message)
+
+
+def _check_out_of_scope_recommendation(reply: str, user_message: str) -> None:
+    """
+    Log-only detection of vendor/consulting-firm recommendations leaking into a
+    reply. Vendor names are never present in the RAG corpus, so any named firm is
+    out of scope. Logged under the distinct `out_of_scope_recommendation` category
+    so its frequency can be assessed independently of `citation-grounding` warnings.
+    Never blocks or modifies the reply.
+    """
+    lower = reply.lower()
+
+    hits = [name for name in _FIRM_DENYLIST if name in lower]
+    if _EY_RE.search(reply):
+        hits.append("EY")
+
+    enum_match = _FIRM_ENUM_RE.search(reply)
+
+    if hits or enum_match:
+        logger.warning(
+            "[out_of_scope_recommendation] Reply appears to name/recommend "
+            "firms or vendors. Denylist hits: %r | enumeration: %r | query: %.120s",
+            hits,
+            enum_match.group(0)[:120] if enum_match else None,
+            user_message,
+        )

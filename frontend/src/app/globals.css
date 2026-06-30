@@ -12,6 +12,18 @@
 */
 
 :root {
+  /*
+    VigorousONE brand colours — sampled directly from the logo. These are
+    constant across light/dark (they are the brand identity, not theme surfaces).
+    Used for: sidebar + top-bar background (green), active nav item + score donut
+    (yellow), and as the dark foreground on yellow (navy). See CLAUDE.md.
+  */
+  --brand-navy: #234865;
+  --brand-yellow: #F9C126;
+  --brand-green: #388F6D;         /* progress-bar green fills — keep this lighter shade */
+  --brand-green-dark: #2A6B51;    /* deeper shade for the sidebar + top-bar background only */
+  --brand-green-hover: #3fa17e;  /* lighter green tint for hover on the green bars */
+
   /* Surfaces */
   --app-bg: #F6F6FB;        /* cream/off-white main background */
   --sidebar-bg: #FFFFFF;    /* light sidebar */

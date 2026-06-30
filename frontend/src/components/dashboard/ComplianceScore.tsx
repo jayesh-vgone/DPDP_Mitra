@@ -17,8 +17,8 @@ function getStatus(score: number): { labelKey: TranslationKey; color: string } {
 
 /**
  * Pure donut visual (no card chrome) so it can be embedded inside the
- * Dashboard's Overall Score card. Arc re-themed to the indigo→violet accent:
- * indigo fills 0–50%, violet fills 50–score%.
+ * Dashboard's Overall Score card. Arc themed to the VigorousONE brand yellow
+ * (var(--brand-yellow)) over a neutral track; centre number stays brand-ink.
  */
 export function ComplianceScore({ score }: { score: number }) {
   const { lang } = useLanguage();
@@ -41,20 +41,20 @@ export function ComplianceScore({ score }: { score: number }) {
       <svg viewBox="0 0 200 200" className="w-full h-full">
         {/* Background track */}
         <circle cx={CX} cy={CY} r={RADIUS} fill="none" stroke="var(--chart-track)" strokeWidth="18" />
-        {/* Arc 1: indigo, 0–50% */}
+        {/* Arc 1: brand yellow, 0–50% */}
         {firstFilled > 0 && (
           <circle
             cx={CX} cy={CY} r={RADIUS} fill="none"
-            stroke="var(--accent)" strokeWidth="18" strokeLinecap="round"
+            stroke="var(--brand-yellow)" strokeWidth="18" strokeLinecap="round"
             strokeDasharray={`${firstFilled} ${CIRCUMFERENCE}`}
             transform={`rotate(${arc1Rotate} ${CX} ${CY})`}
           />
         )}
-        {/* Arc 2: violet, 50–score% */}
+        {/* Arc 2: brand yellow, 50–score% */}
         {secondFilled > 0 && (
           <circle
             cx={CX} cy={CY} r={RADIUS} fill="none"
-            stroke="var(--accent-violet)" strokeWidth="18" strokeLinecap="round"
+            stroke="var(--brand-yellow)" strokeWidth="18" strokeLinecap="round"
             strokeDasharray={`${secondFilled} ${CIRCUMFERENCE}`}
             transform={`rotate(${arc2Rotate} ${CX} ${CY})`}
           />

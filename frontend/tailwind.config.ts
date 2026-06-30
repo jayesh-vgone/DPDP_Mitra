@@ -34,10 +34,13 @@ const config: Config = {
           med: 'var(--risk-med)',
           low: 'var(--risk-low)',
         },
+        // VigorousONE brand colours — backed by CSS vars in globals.css.
         brand: {
-          navy: '#0f2447',
-          'navy-mid': '#1a3a6e',
-          indigo: '#4f46e5',
+          navy: 'var(--brand-navy)',
+          yellow: 'var(--brand-yellow)',
+          green: 'var(--brand-green)',
+          'green-dark': 'var(--brand-green-dark)',
+          'green-hover': 'var(--brand-green-hover)',
         },
       },
       animation: {

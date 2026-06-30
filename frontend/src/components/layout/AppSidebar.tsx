@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   ShieldCheck,
@@ -56,12 +57,6 @@ export function AppSidebar({
   const pathname = usePathname();
   const { lang } = useLanguage();
 
-  const today = new Date().toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-
   return (
     <>
       {/* Mobile backdrop — only below lg, only when the drawer is open */}
@@ -74,25 +69,22 @@ export function AppSidebar({
       />
 
       <aside
-        className={`w-60 bg-sidebar flex flex-col shrink-0 border-r border-line
+        className={`w-60 bg-brand-green-dark flex flex-col shrink-0 border-r border-brand-green-dark
           fixed inset-y-0 left-0 z-50 transition-transform duration-300
           lg:static lg:z-auto lg:translate-x-0
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-line flex items-center justify-between gap-2">
+        <div className="px-5 py-5 border-b border-white/15 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div
-              className="p-2 rounded-xl shadow-sm"
-              style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-violet))' }}
-            >
-              <ShieldCheck size={18} className="text-white" />
+            <div className="p-2 rounded-xl shadow-sm bg-brand-yellow">
+              <ShieldCheck size={18} className="text-brand-navy" />
             </div>
             <div>
-              <h1 className="text-ink font-bold text-xl leading-tight tracking-tight">
+              <h1 className="text-white font-bold text-xl leading-tight tracking-tight">
                 EduPrivacy AI
               </h1>
-              <p className="text-accent text-sm leading-tight mt-0.5 font-semibold">
+              <p className="text-brand-yellow text-sm leading-tight mt-0.5 font-semibold">
                 DPDP Copilot
               </p>
             </div>
@@ -100,7 +92,7 @@ export function AppSidebar({
           {/* Close — mobile only */}
           <button
             onClick={onClose}
-            className="lg:hidden w-9 h-9 -mr-1 flex items-center justify-center rounded-lg text-muted hover:bg-surface-2 transition shrink-0"
+            className="lg:hidden w-9 h-9 -mr-1 flex items-center justify-center rounded-lg text-white hover:bg-white/10 transition shrink-0"
             aria-label="Close menu"
           >
             <X size={18} />
@@ -111,7 +103,7 @@ export function AppSidebar({
       <nav className="flex-1 py-4 px-2 space-y-5 overflow-y-auto">
         {NAV_GROUPS.map(({ sectionKey, items }) => (
           <div key={sectionKey} className="space-y-0.5">
-            <p className="px-3 pb-1.5 text-[0.65rem] font-semibold tracking-widest uppercase text-muted">
+            <p className="px-3 pb-1.5 text-[0.65rem] font-semibold tracking-widest uppercase text-white/60">
               {t(sectionKey, lang)}
             </p>
             {items.map(({ labelKey, icon: Icon, href, disabled }) => {
@@ -124,12 +116,12 @@ export function AppSidebar({
                 return (
                   <div
                     key={labelKey}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-not-allowed opacity-50"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-not-allowed opacity-60"
                     aria-disabled="true"
                   >
-                    <Icon size={19} className="text-muted shrink-0" />
-                    <span className="text-muted text-[0.95rem] flex-1">{label}</span>
-                    <span className="text-[0.6rem] bg-surface-2 text-muted px-1.5 py-0.5 rounded-full font-medium leading-none">
+                    <Icon size={19} className="text-white/60 shrink-0" />
+                    <span className="text-white/60 text-[0.95rem] flex-1">{label}</span>
+                    <span className="text-[0.6rem] bg-white/10 text-white/80 px-1.5 py-0.5 rounded-full font-medium leading-none">
                       {t('navSoon', lang)}
                     </span>
                   </div>
@@ -142,8 +134,8 @@ export function AppSidebar({
                   href={href}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
                     isActive
-                      ? 'bg-accent text-white shadow-sm'
-                      : 'text-ink/70 hover:bg-accent-soft hover:text-accent'
+                      ? 'bg-brand-yellow text-brand-navy shadow-sm'
+                      : 'text-white/85 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <Icon size={19} className="shrink-0" />
@@ -155,10 +147,20 @@ export function AppSidebar({
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="px-5 py-4 border-t border-line">
-        <p className="text-[0.65rem] text-muted">{today}</p>
-        <p className="text-[0.65rem] text-muted mt-0.5 font-medium">ENG IN</p>
+      {/* Footer — "Powered by VigorousONE" */}
+      <div className="px-5 py-4 border-t border-white/15 flex items-center gap-2">
+        {/* White rounded backing so the logo's white JPG bg doesn't read as a
+            stray square against the green sidebar (mirrors the top-left shield). */}
+        <span className="shrink-0 bg-white rounded-md p-0.5 flex items-center justify-center">
+          <Image
+            src="/assets/vigorousone-logo.jpg"
+            alt="VigorousONE"
+            width={20}
+            height={20}
+            className="rounded-sm"
+          />
+        </span>
+        <span className="text-xs text-white/70 leading-tight">Powered by VigorousONE</span>
       </div>
       </aside>
     </>
